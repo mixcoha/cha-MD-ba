@@ -32,7 +32,7 @@ cat > ext_${nd}_$1_en$2_$3p_$4ns.slmr << estodo
 #SBATCH -p $2
 #SBATCH -n $3
 #SBATCH -e ${nd}_$1_error_%J
-#SBATCH -o ${nd}_$1salida_%J
+#SBATCH -o ${nd}_$1_salida_%J
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=5 
 #SBATCH --nodes=$node
