@@ -23,11 +23,9 @@ echo 1 | gmx mindist -f $xtc_file -s $tpr_file -pi
 sed -e '1,29d' mindist.xvg | awk '{ print $1/1000, $2, $3 }' > mindist.txt
 
 ##### GRAFICA RMSD PROTEINA
-```
 gnuplot << EOF
 set terminal postscript eps color enhanced
 set output "mindist.eps"
-```
 set style line 1 lt -1 lw 3 lc rgb "red"
 set style line 2 lt -1 lw 3 lc rgb "green"
 set style line 3 lt -1 lw 3 lc rgb "blue"
