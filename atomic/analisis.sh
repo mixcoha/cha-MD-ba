@@ -15,6 +15,60 @@ ndx_file=$RUNDIR/index.ndx
 mkdir analysis
 cd analysis
 
+mkdir mindist
+cd mindist
+
+echo 1 | gmx mindist -f $xtc_file -s $tpr_file -pi
+
+sed -e '1,29d' mindist.xvg | awk '{ print $1/1000, $2, $3 }' > mindist.txt
+
+##### GRAFICA RMSD PROTEINA
+```
+gnuplot << EOF
+set terminal postscript eps color enhanced
+set output "mindist.eps"
+```
+set style line 1 lt -1 lw 3 lc rgb "red"
+set style line 2 lt -1 lw 3 lc rgb "green"
+set style line 3 lt -1 lw 3 lc rgb "blue"
+set style line 4 lt -1 lw 3 lc rgb "magenta"
+set style line 5 lt -1 lw 3 lc rgb "cyan"
+set style line 6 lt -1 lw 3 lc rgb "yellow"
+set style line 7 lt -1 lw 3 lc rgb "black"
+set style line 8 lt -1 lw 3 lc rgb "gold"
+set style line 9 lt -1 lw 3 lc rgb "orange"
+set style line 10 lt -1 lw 3 lc rgb "grey"
+set style line 11 lt -1 lw 3 pi -3 pt 7 ps 0.5
+set style line 12 lt 2 lw 3 lc 9
+set encoding iso_8859_1
+
+#PLOT1 All results
+
+set title "Mindist of protein"
+set format x"%g"   # reset xformat
+set format y"%g"
+set xlabel "Time (ns)" font "Helvetica,14" # set xlabel
+set ylabel "RMSD (nm)" font "Helvetica,14"
+set xrange [ 0 : 700 ]
+set xtics 100
+set mxtics 50
+set xtics 50
+set mxtics 5
+set ytics 0.1 nomirror
+set xrange [GPVAL_X_MIN:GPVAL_X_MAX]
+set yrange [GPVAL_Y_MIN:GPVAL_Y_MAX]
+set key ins
+set key horiz
+set key default
+set key right top
+set key outside left bottom
+set key noinvert samplen 0.2 spacing 2 width 3 height 0
+set key outside horizontal
+
+    plot 'mindis.txt' u 1:2 w l ls 2 t "Min dist", '' u 1:3 w l ls 3 t "Max dist"
+
+EOF
+
 ## ******   RMSD CALCULATION   **** ###
 
 mkdir rms
