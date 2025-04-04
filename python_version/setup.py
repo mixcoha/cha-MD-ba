@@ -29,15 +29,17 @@ setup(
     extras_require={
         "dev": [
             "pytest>=6.0",
+            "pytest-cov>=4.0",
             "black>=21.0",
             "isort>=5.0",
             "mypy>=0.9",
             "flake8>=3.9",
+            "pre-commit>=2.0",
         ],
     },
     entry_points={
         "console_scripts": [
-            "cha-md-ba=cha_md_ba.cli:main",
+            "cha-md-ba=cha_md_ba.cli.main:cli",
         ],
     },
 )
