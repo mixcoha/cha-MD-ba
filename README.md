@@ -1,6 +1,34 @@
-# CHA-MD-BA: Molecular Dynamics Simulation Pipeline
+# CHA-MD-BA
 
-A comprehensive Python package for molecular dynamics simulations, focusing on protein structure analysis and dynamics.
+Molecular Dynamics Simulation Pipeline for Protein Analysis
+
+## Repository Structure
+
+This repository contains two versions of CHA-MD-BA:
+
+### 1. Bash Version (`bash_version/`)
+- Original implementation in bash
+- Scripts for MD simulation automation
+- Designed for direct use with GROMACS
+
+### 2. Python Version (`python_version/`)
+- New implementation in Python
+- Improved command-line interface
+- Additional features and comprehensive documentation
+
+## Documentation
+
+Complete documentation is available in:
+- Bash Version: `bash_version/docs/`
+- Python Version: `python_version/docs/`
+
+## License
+
+This project is licensed under the MIT License - see the `LICENSE` file for details.
+
+## Contact
+
+For questions and support, please open an issue in the GitHub repository.
 
 ## Overview
 
@@ -74,15 +102,13 @@ Detailed documentation is available in the `docs` directory:
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## Acknowledgments
 
 - GROMACS development team
 - MDAnalysis developers
 - All contributors to this project
+
+## Author
 
 Edgar Mixcoha
     

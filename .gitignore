@@ -58,34 +58,101 @@ wheels/
 .installed.cfg
 *.egg
 
-# Entornos virtuales
+# Virtual Environment
 venv/
-ENV/
 env/
-.env/
+ENV/
 
-# IDEs y editores
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-*~
 
-# Documentación
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+*.gro
+*.top
+*.xtc
+*.edr
+*.log
+*.mdp
+*.cpt
+*.tpr
+*.itp
+*.ndx
+*.pdb
+*.pdbqt
+*.mol2
+*.sdf
+*.xyz
+*.pkl
+*.npy
+*.npz
+*.csv
+*.dat
+*.txt
+!requirements.txt
+!setup.py
+!pyproject.toml
+!LICENSE
+!README.md
+!CONTRIBUTING.md
+
+# Documentation
 docs/_build/
-docs/_static/
-docs/_templates/
+docs/api/_build/
 
-# Pruebas
-.pytest_cache/
+# Testing
 .coverage
 htmlcov/
+.pytest_cache/
 .tox/
 .nox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
 
-# Mypy
-.mypy_cache/
+# Jupyter Notebook
+.ipynb_checkpoints
 
-# Otros
-.DS_Store
-Thumbs.db 
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/ 
