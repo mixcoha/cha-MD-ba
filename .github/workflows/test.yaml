@@ -1,0 +1,32 @@
+name: Pruebas automáticas
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout del repositorio
+      uses: actions/checkout@v3
+
+    - name: Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Instalar dependencias
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov
+        pip install -e ".[dev]"
+
+    - name: Ejecutar pruebas con pytest
+      run: |
+        cd python_version
+        python -m pytest tests/ -v --cov=cha_md_ba --cov-report=xml
+
+    - name: Subir cobertura a Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./python_version/coverage.xml
+        fail_ci_if_error: true
