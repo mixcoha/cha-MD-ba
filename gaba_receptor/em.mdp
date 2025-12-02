@@ -1,0 +1,40 @@
+; Minimización de energía para receptor GABA
+; Parámetros optimizados de CHA-MD-BA
+title = Minimización del receptor GABA en agua
+
+; Parámetros de control de integración
+integrator = steep      ; Steepest descent minimization
+emtol = 1000.0         ; Stop minimization when max force < 1000.0 kJ/mol/nm
+emstep = 0.01          ; Energy step size
+nsteps = 50000         ; Maximum number of steps
+
+; Parámetros de salida
+nstxout = 1000         ; Save coordinates every 1000 steps
+nstvout = 1000         ; Save velocities every 1000 steps
+nstenergy = 1000       ; Save energies every 1000 steps
+nstlog = 1000          ; Update log file every 1000 steps
+
+; Parámetros de vecinos
+cutoff-scheme = Verlet
+nstlist = 10           ; Frequency to update neighbor list
+ns_type = grid         ; Method to determine neighbor list
+coulombtype = PME      ; PME for long-range electrostatics
+rcoulomb = 1.0         ; Short-range electrostatic cut-off
+rvdw = 1.0             ; Short-range Van der Waals cut-off
+pbc = xyz              ; Periodic boundary conditions
+
+; Parámetros de restricciones
+constraints = h-bonds
+constraint_algorithm = LINCS
+lincs_iter = 1
+lincs_order = 4
+
+; Parámetros PME
+pme_order = 4
+fourierspacing = 0.16
+
+; Control de temperatura (desactivado para minimización)
+tcoupl = no
+
+; Control de presión (desactivado para minimización)
+pcoupl = no

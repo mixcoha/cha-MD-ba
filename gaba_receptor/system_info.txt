@@ -1,0 +1,17 @@
+Sistema: Receptor GABA
+Archivo original: gaba_receptor_protonated_pH7.4.pdb
+Protonación: pH 7.4 (PROPKA 3.5.1)
+Generado con: MODELLER 10.7
+Fecha de preparación: Fri Aug  8 22:56:19 CST 2025
+
+Átomos totales:    17745
+Residuos únicos:       20
+
+Campo de fuerza recomendado: AMBER99SB-ILDN
+Modelo de agua recomendado: TIP3P
+Tipo de caja recomendado: Dodecahedron
+
+Notas:
+- Sistema protonado a pH fisiológico
+- Usar scripts CHA-MD-BA con MDP optimizados
+- Monitorear estabilidad durante equilibración

@@ -1,4 +1,4 @@
-# Archivos de GROMACS
+# Archivos de GROMACS - RESULTADOS (NO subir)
 *.xtc
 *.trr
 *.edr
@@ -7,7 +7,7 @@
 *.top
 *.tpr
 *.cpt
-*.mdp
+*.cpt
 *.ndx
 *.xvg
 *.pdb
@@ -23,6 +23,14 @@
 *.mol2
 *.sdf
 *.xyz
+*.pdf
+*.csv
+
+# Archivos de configuración GROMACS (SÍ subir - son scripts)
+!*.mdp
+!input/**/*.mdp
+!templates/**/*.mdp
+!examples/**/*.mdp
 
 # Archivos temporales
 *.tmp
