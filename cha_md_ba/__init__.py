@@ -1,8 +1,8 @@
-"""CHA-MD-BA: Herramienta para análisis de dinámica molecular."""
+"""
+Cha-MD-BA: Paquete para análisis de dinámica molecular de proteínas.
+"""
 
-from .core.system import SystemPreparation
-from .analysis.trajectory import TrajectoryAnalysis
-from .visualization.plotter import ResultsVisualizer
+from .protein_predictor import ProteinStructurePredictor
+from .visualization.structure_viewer import StructureViewer
 
-__version__ = '0.1.0'
-__all__ = ['SystemPreparation', 'TrajectoryAnalysis', 'ResultsVisualizer']
+__all__ = ['ProteinStructurePredictor', 'StructureViewer']

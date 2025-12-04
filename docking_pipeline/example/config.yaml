@@ -1,0 +1,27 @@
+# Configuración para el ejemplo de docking
+receptor:
+  name: "1hsg"  # PDB ID de la proteína
+  center:
+    x: 10.0
+    y: 20.0
+    z: 30.0
+  size:
+    x: 20.0
+    y: 20.0
+    z: 20.0
+
+database:
+  name: "zinc15"
+  query: "MW<500 AND HBA<=5 AND HBD<=3 AND TPSA<120"  # Filtros de Lipinski
+  max_compounds: 100
+
+docking:
+  exhaustiveness: 8
+  num_modes: 9
+  energy_range: 3.0
+  threads: 4
+
+visualization:
+  output_format: "html"
+  show_hydrogens: false
+  color_scheme: "chain" 

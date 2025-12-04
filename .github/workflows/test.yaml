@@ -7,15 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout del repositorio
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Configurar Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
     - name: Instalar dependencias
       run: |
+        cd python_version
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
         pip install -e ".[dev]"
@@ -26,7 +27,7 @@ jobs:
         python -m pytest tests/ -v --cov=cha_md_ba --cov-report=xml
 
     - name: Subir cobertura a Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./python_version/coverage.xml
         fail_ci_if_error: true

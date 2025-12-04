@@ -156,3 +156,37 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/ 
+# Entornos virtuales
+*_env/
+venv/
+.venv/
+alphafold_env/
+
+# Resultados y datos
+*.pdb
+*.xtc
+*.trr
+*.gro
+*.edr
+*.cpt
+*.tpr
+
+# Imágenes y videos
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.avi
+*.mov
+
+# Archivos grandes
+*.zip
+*.tar.gz
+*.h5
+*.hdf5
+*.pt
+*.pth
+
+# AutoDock archivos pesados
+AutoDock-Vina/
