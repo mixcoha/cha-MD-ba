@@ -21,8 +21,8 @@ from .prepare import MDSystemPreparator, download_pdb
 
 console = Console()
 
-DEFAULT_OUTPUT_DIR = "simulations"
-DEFAULT_DATA_DIR = "data"
+DEFAULT_OUTPUT_DIR = "work"
+DEFAULT_DATA_DIR = "work/data"
 
 
 @dataclass
@@ -283,8 +283,16 @@ def build_parser() -> argparse.ArgumentParser:
             "con NaCl 0.5 M a 310 K."
         )
     )
-    parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Directorio de simulaciones")
-    parser.add_argument("--data-dir", default=DEFAULT_DATA_DIR, help="Directorio para PDB descargados")
+    parser.add_argument(
+        "--output-dir",
+        default=DEFAULT_OUTPUT_DIR,
+        help="Directorio local de simulaciones (gitignored; por defecto work/)",
+    )
+    parser.add_argument(
+        "--data-dir",
+        default=DEFAULT_DATA_DIR,
+        help="Directorio local para PDB descargados (gitignored; por defecto work/data/)",
+    )
     parser.add_argument(
         "--stages",
         default="download,clean,prepare,mdps,minimize",

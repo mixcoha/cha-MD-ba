@@ -3,6 +3,8 @@
 from unittest.mock import Mock
 
 from cha_md_ba.benchmark import (
+    DEFAULT_DATA_DIR,
+    DEFAULT_OUTPUT_DIR,
     Benchmark6M03Config,
     parse_system_composition,
     write_protocol_mdps,
@@ -34,6 +36,11 @@ def test_benchmark_default_conditions():
     assert config.pressure == 1.0
     assert config.forcefield == "amber99sb-ildn"
     assert config.water_model == "tip3p"
+
+
+def test_benchmark_defaults_to_local_work_dir():
+    assert DEFAULT_OUTPUT_DIR == "work"
+    assert DEFAULT_DATA_DIR == "work/data"
 
 
 def test_clean_protein_pdb_strips_water_and_renames_his(tmp_path):

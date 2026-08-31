@@ -5,6 +5,9 @@ Este ejemplo prepara un sistema de referencia de la proteasa principal de
 SARS-CoV-2 en forma apo (PDB ``6M03``), disuelta en agua TIP3P con **NaCl 0.5 M**
 a **310 K**.
 
+Las corridas se escriben en ``work/`` (gitignored) y no se publican en GitHub.
+La descripción del protocolo está en ``benchmarks/6M03_nacl_0.5M_310K/README.md``.
+
 Condiciones
 -----------
 
@@ -20,9 +23,7 @@ Ejecución
 
 .. code-block:: bash
 
-   python scripts/run_benchmark_6m03.py \
-       --output-dir simulations \
-       --data-dir data
+   python scripts/run_benchmark_6m03.py --gpu-ids 0
 
 Desde Python:
 
@@ -37,8 +38,4 @@ Desde Python:
    result = run_benchmark(config=config, stages=["download", "clean", "prepare", "mdps"])
 
 El reporte de composición y las rutas generadas quedan en
-``simulations/6M03/benchmark_report.json`` (directorio local, gitignored).
-Una copia portable de la corrida de referencia (PDB, gro, topología, logs,
-``tpr`` y reportes JSON; **sin** trayectorias ``.trr``) está en
-``benchmarks/6M03_nacl_0.5M_310K/run/``. La descripción completa del protocolo
-está en ``benchmarks/6M03_nacl_0.5M_310K/README.md``.
+``work/6M03/benchmark_report.json`` (directorio local, gitignored).
