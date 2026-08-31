@@ -1,0 +1,23 @@
+{
+  "gmx": "/usr/bin/gmx",
+  "nprocs": 4,
+  "gpu": false,
+  "system": "6M03 + TIP3P + NaCl 0.5 M, 310 K",
+  "stages": [
+    {
+      "name": "minimize",
+      "seconds": 33.32,
+      "minutes": 0.56,
+      "potential_kjmol": -1193227.0,
+      "fmax_kjmol_nm": 970.68146,
+      "converged": true
+    },
+    {
+      "name": "nvt_fc1000_100ps",
+      "seconds": 819.67,
+      "minutes": 13.66,
+      "wall_s": 3269.053,
+      "nsteps": 50000
+    }
+  ]
+}

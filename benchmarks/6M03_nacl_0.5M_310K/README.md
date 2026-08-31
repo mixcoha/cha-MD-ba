@@ -58,6 +58,28 @@ referencia en `mdp/` de este directorio.
 La composición del sistema (n.º de SOL, NA, CL) se guarda en
 `simulations/6M03/benchmark_report.json`.
 
+## Resultados de la corrida (tras `git pull`)
+
+`data/` y `simulations/` están en `.gitignore`: una corrida en el Cloud Agent
+**no** aparece en tu laptop aunque hagas pull. Los artefactos portables de esta
+corrida (preparación + minimización + NVT 100 ps, POSRES 1000) están versionados
+en este directorio:
+
+```
+benchmarks/6M03_nacl_0.5M_310K/run/
+```
+
+Tras `git pull` de la rama `cursor/6m03-benchmark-nacl-310k-c08b` verás, entre otros:
+
+* `run/pdb/6M03_rcsb.pdb` y `run/pdb/6M03.pdb`
+* `run/1_preparation/6M03_ions.gro`, `topol.top`, `posre.itp`
+* `run/2_minimization/minimized.gro`, `em.log`, `em.edr`
+* `run/3_nvt/posre_constante/1000/nvt.gro`, `nvt.log`, `nvt.edr`, `topol.tpr`
+* `run/benchmark_report.json` y `run/timing_local.json`
+
+**No** está en git la trayectoria `nvt.trr` (~158 MB; GitHub rechaza archivos
+≥ 100 MB). El detalle de lo omitido está en `run/README.md`.
+
 ## Sistema de referencia verificado
 
 Con GROMACS 2023.3, AMBER99SB-ILDN y TIP3P, el protocolo produce:

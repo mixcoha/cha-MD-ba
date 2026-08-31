@@ -157,4 +157,17 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
-.hypothesis/ 
+.hypothesis/
+
+# Artefactos portables de benchmarks (deben ir DESPUÉS de las reglas
+# globales *.gro/*.pdb/*.top/*.log/*.mdp/*.tpr/*.itp/*.edr).
+# data/ y simulations/ siguen ignorados: las corridas locales no se suben.
+# Las trayectorias (*.trr, *.xtc) siguen ignoradas a propósito (límite GitHub 100 MB).
+!benchmarks/**/*.mdp
+!benchmarks/**/*.gro
+!benchmarks/**/*.pdb
+!benchmarks/**/*.top
+!benchmarks/**/*.itp
+!benchmarks/**/*.tpr
+!benchmarks/**/*.log
+!benchmarks/**/*.edr

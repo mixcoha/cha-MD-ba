@@ -37,5 +37,8 @@ Desde Python:
    result = run_benchmark(config=config, stages=["download", "clean", "prepare", "mdps"])
 
 El reporte de composición y las rutas generadas quedan en
-``simulations/6M03/benchmark_report.json``. La descripción completa del protocolo
+``simulations/6M03/benchmark_report.json`` (directorio local, gitignored).
+Una copia portable de la corrida de referencia (PDB, gro, topología, logs,
+``tpr`` y reportes JSON; **sin** trayectorias ``.trr``) está en
+``benchmarks/6M03_nacl_0.5M_310K/run/``. La descripción completa del protocolo
 está en ``benchmarks/6M03_nacl_0.5M_310K/README.md``.
