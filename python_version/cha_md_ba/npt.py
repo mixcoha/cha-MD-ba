@@ -14,7 +14,16 @@ console = Console()
 class NPTEquilibrator:
     """Clase para realizar equilibración NPT y producción de trayectorias"""
     
-    def __init__(self, input_gro: str, topol_top: str, mdp_file: Optional[str] = None):
+    def __init__(
+        self,
+        input_gro: str,
+        topol_top: str,
+        mdp_file: Optional[str] = None,
+        temperature: float = 300.0,
+        nsteps: int = 50000,
+        pressure: float = 1.0,
+        gmx: Optional[str] = None,
+    ):
         """
         Inicializa el equilibrador NPT
         
@@ -22,13 +31,32 @@ class NPTEquilibrator:
             input_gro: Ruta al archivo de coordenadas (.gro)
             topol_top: Ruta al archivo de topología (.top)
             mdp_file: Ruta al archivo de parámetros NPT (.mdp)
+            temperature: Temperatura de referencia en Kelvin
+            nsteps: Número de pasos de equilibración
+            pressure: Presión de referencia en bar
+            gmx: Ejecutable de GROMACS
         """
+        from .gmx_utils import find_gmx
+
         self.input_gro = Path(input_gro)
         self.topol_top = Path(topol_top)
         self.mdp_file = Path(mdp_file) if mdp_file else None
+        self.temperature = temperature
+        self.nsteps = nsteps
+        self.pressure = pressure
+        self.gmx = gmx or find_gmx()
         
-    def create_mdp_file(self, output_path: str, title: str = "NPT Equilibration", 
-                       is_production: bool = False) -> Path:
+    def create_mdp_file(
+        self,
+        output_path: str,
+        title: str = "NPT Equilibration",
+        is_production: bool = False,
+        temperature: Optional[float] = None,
+        nsteps: Optional[int] = None,
+        pressure: Optional[float] = None,
+        gen_vel: Optional[bool] = None,
+        continuation: Optional[bool] = None,
+    ) -> Path:
         """
         Crea un archivo de parámetros para equilibración NPT o producción
         
@@ -36,24 +64,40 @@ class NPTEquilibrator:
             output_path: Ruta para guardar el archivo .mdp
             title: Título de la simulación
             is_production: Si es True, configura parámetros para producción
+            temperature: Temperatura de referencia (K)
+            nsteps: Número de pasos (anula el valor por defecto)
+            pressure: Presión de referencia (bar)
+            gen_vel: Generar velocidades; por defecto sí en NPT inicial y no en producción
+            continuation: Continuar desde un estado previo
             
         Returns:
             Ruta al archivo .mdp creado
         """
         output_path = Path(output_path)
+        temperature = self.temperature if temperature is None else temperature
+        pressure = self.pressure if pressure is None else pressure
+        if nsteps is None:
+            nsteps = 250000 if is_production else self.nsteps
+        if gen_vel is None:
+            gen_vel = not is_production
+        if continuation is None:
+            continuation = is_production
+        gen_vel_flag = "yes" if gen_vel else "no"
+        continuation_flag = "yes" if continuation else "no"
+        coord_stride = 5000 if is_production else 500
         
         mdp_content = f"""; Líneas que comienzan con ';' son considerados comentarios
 title               = {title}
 
 ; Parameters describing what to do, when to stop and what to save
 integrator          = md        ; leap-frog integrator
-dt                  = 0.002     ; !!! femto second
-nsteps              = {'50000' if not is_production else '250000'} ; {'100 ps' if not is_production else '500 ps'}
-nstxout             = {'500' if not is_production else '5000'}    ; save coordinates every {'0.1 ps' if not is_production else '1 ps'}
-nstvout             = {'500' if not is_production else '5000'}    ; save velocities every {'0.1 ps' if not is_production else '1 ps'}
-nstenergy           = {'500' if not is_production else '5000'}    ; save energies every {'0.1 ps' if not is_production else '1 ps'}
-nstlog              = {'500' if not is_production else '5000'}    ; update log file every {'0.1 ps' if not is_production else '1 ps'}
-continuation        = no        ; first dynamics run
+dt                  = 0.002     ; 2 fs
+nsteps              = {nsteps} ; {nsteps * 0.002:.1f} ps
+nstxout             = {coord_stride}
+nstvout             = {coord_stride}
+nstenergy           = {coord_stride}
+nstlog              = {coord_stride}
+continuation        = {continuation_flag}
 constraint_algorithm = lincs     ; holonomic constraints 
 constraints         = h-bonds   ; bonds involving H are constrained
 lincs_iter          = 1         ; accuracy of LINCS
@@ -76,13 +120,13 @@ fourierspacing      = 0.16      ; grid spacing for FFT
 tcoupl              = V-rescale ; modified Berendsen thermostat
 tc-grps             = Protein Non-Protein ; two coupling groups - more accurate
 tau_t               = 0.1       0.1    ; time constant, in ps
-ref_t               = 300       300    ; reference temperature, one for each group, in K
+ref_t               = {temperature:g}       {temperature:g}    ; reference temperature, one for each group, in K
 
 ; Pressure coupling
 pcoupl              = Parrinello-Rahman     ; Pressure coupling on in NPT
 pcoupltype          = isotropic             ; uniform scaling of box vectors
 tau_p               = 2.0                   ; time constant, in ps
-ref_p               = 1.0                   ; reference pressure, in bar
+ref_p               = {pressure:g}                   ; reference pressure, in bar
 compressibility     = 4.5e-5                ; isothermal compressibility of water, bar^-1
 refcoord_scaling    = com                   ; absolute position of the center of mass
 
@@ -90,8 +134,8 @@ refcoord_scaling    = com                   ; absolute position of the center of
 pbc                 = xyz       ; 3-D PBC
 
 ; Velocity generation
-gen_vel             = {'yes' if not is_production else 'no'} ; assign velocities from Maxwell distribution
-gen_temp            = 300       ; temperature for Maxwell distribution
+gen_vel             = {gen_vel_flag} ; assign velocities from Maxwell distribution
+gen_temp            = {temperature:g}       ; temperature for Maxwell distribution
 gen_seed            = -1        ; generate a random seed
 """
         
@@ -125,7 +169,7 @@ gen_seed            = -1        ; generate a random seed
             task = progress.add_task("[cyan]Generando archivo .tpr...", total=1)
             tpr_path = output_dir / "topol.tpr"
             cmd = [
-                "gmx", "grompp",
+                self.gmx, "grompp",
                 "-f", str(self.mdp_file),
                 "-c", str(self.input_gro),
                 "-r", str(self.input_gro),
@@ -137,7 +181,7 @@ gen_seed            = -1        ; generate a random seed
             
             # 3. Ejecutar equilibración
             task = progress.add_task("[cyan]Ejecutando equilibración NPT...", total=1)
-            cmd = ["gmx", "mdrun", "-v", "-s", str(tpr_path)]
+            cmd = [self.gmx, "mdrun", "-v", "-s", str(tpr_path), "-deffnm", str(output_dir / "npt")]
             
             if gpu_ids:
                 cmd.extend(["-gpu_id", gpu_ids, "-nb", "gpu_cpu", "-tunepme"])
@@ -147,15 +191,17 @@ gen_seed            = -1        ; generate a random seed
             
             # 4. Procesar la estructura final
             task = progress.add_task("[cyan]Procesando estructura final...", total=1)
-            confout_gro = output_dir / "confout.gro"
+            confout_gro = output_dir / "npt.gro"
+            if not confout_gro.exists():
+                confout_gro = output_dir / "confout.gro"
             
             # Centrar molécula
-            cmd = ["gmx", "trjconv", "-f", str(confout_gro), "-s", str(tpr_path),
+            cmd = [self.gmx, "trjconv", "-f", str(confout_gro), "-s", str(tpr_path),
                   "-pbc", "mol", "-center", "-o", str(output_dir / "tmp.gro")]
             subprocess.run(cmd, input=b"1 0\n", check=True)
             
             # Compactar
-            cmd = ["gmx", "trjconv", "-f", str(output_dir / "tmp.gro"), "-ur", "compact",
+            cmd = [self.gmx, "trjconv", "-f", str(output_dir / "tmp.gro"), "-ur", "compact",
                   "-pbc", "mol", "-o", str(output_dir / "npt.gro"), "-s", str(tpr_path)]
             subprocess.run(cmd, input=b"0\n", check=True)
             
@@ -171,9 +217,9 @@ gen_seed            = -1        ; generate a random seed
             "tpr": tpr_path,
             "confout": confout_gro,
             "final": output_dir / "npt.gro",
-            "xtc": output_dir / "traj_comp.xtc",
-            "edr": output_dir / "ener.edr",
-            "log": output_dir / "md.log"
+            "xtc": output_dir / "npt.xtc" if (output_dir / "npt.xtc").exists() else output_dir / "traj_comp.xtc",
+            "edr": output_dir / "npt.edr" if (output_dir / "npt.edr").exists() else output_dir / "ener.edr",
+            "log": output_dir / "npt.log" if (output_dir / "npt.log").exists() else output_dir / "md.log"
         }
         
     def run_production(self, output_dir: str, num_runs: int = 1, 
@@ -214,7 +260,7 @@ gen_seed            = -1        ; generate a random seed
                 input_gro = self.input_gro if run_num == 1 else results[-1]["final"]
                 
                 cmd = [
-                    "gmx", "grompp",
+                    self.gmx, "grompp",
                     "-f", str(mdp_path),
                     "-c", str(input_gro),
                     "-p", str(self.topol_top),
@@ -225,7 +271,7 @@ gen_seed            = -1        ; generate a random seed
                 
                 # 3. Ejecutar producción
                 task = progress.add_task("[cyan]Ejecutando producción...", total=1)
-                cmd = ["gmx", "mdrun", "-v", "-s", str(tpr_path)]
+                cmd = [self.gmx, "mdrun", "-v", "-s", str(tpr_path), "-deffnm", str(run_dir / "md")]
                 
                 if gpu_ids:
                     cmd.extend(["-gpu_id", gpu_ids, "-nb", "gpu_cpu", "-tunepme"])
@@ -235,15 +281,17 @@ gen_seed            = -1        ; generate a random seed
                 
                 # 4. Procesar la estructura final
                 task = progress.add_task("[cyan]Procesando estructura final...", total=1)
-                confout_gro = run_dir / "confout.gro"
+                confout_gro = run_dir / "md.gro"
+                if not confout_gro.exists():
+                    confout_gro = run_dir / "confout.gro"
                 
                 # Centrar molécula
-                cmd = ["gmx", "trjconv", "-f", str(confout_gro), "-s", str(tpr_path),
+                cmd = [self.gmx, "trjconv", "-f", str(confout_gro), "-s", str(tpr_path),
                       "-pbc", "mol", "-center", "-o", str(run_dir / "tmp.gro")]
                 subprocess.run(cmd, input=b"1 0\n", check=True)
                 
                 # Compactar
-                cmd = ["gmx", "trjconv", "-f", str(run_dir / "tmp.gro"), "-ur", "compact",
+                cmd = [self.gmx, "trjconv", "-f", str(run_dir / "tmp.gro"), "-ur", "compact",
                       "-pbc", "mol", "-o", str(run_dir / "final.gro"), "-s", str(tpr_path)]
                 subprocess.run(cmd, input=b"0\n", check=True)
                 
@@ -260,8 +308,8 @@ gen_seed            = -1        ; generate a random seed
                 "tpr": tpr_path,
                 "confout": confout_gro,
                 "final": run_dir / "final.gro",
-                "xtc": run_dir / "traj_comp.xtc",
-                "edr": run_dir / "ener.edr",
+                "xtc": run_dir / "md.xtc" if (run_dir / "md.xtc").exists() else run_dir / "traj_comp.xtc",
+                "edr": run_dir / "md.edr" if (run_dir / "md.edr").exists() else run_dir / "ener.edr",
                 "log": run_dir / "md.log"
             })
             

@@ -68,6 +68,12 @@ cha-md-ba npt
 cha-md-ba production
 ```
 
+Benchmark de 6M03 (agua, NaCl 0.5 M, 310 K):
+
+```bash
+python scripts/run_benchmark_6m03.py
+```
+
 ### Python API
 
 ```python

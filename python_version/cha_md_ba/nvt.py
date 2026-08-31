@@ -14,7 +14,15 @@ console = Console()
 class NVTEquilibrator:
     """Clase para realizar equilibración NVT de sistemas moleculares"""
     
-    def __init__(self, input_gro: str, topol_top: str, mdp_file: Optional[str] = None):
+    def __init__(
+        self,
+        input_gro: str,
+        topol_top: str,
+        mdp_file: Optional[str] = None,
+        temperature: float = 300.0,
+        nsteps: int = 50000,
+        gmx: Optional[str] = None,
+    ):
         """
         Inicializa el equilibrador NVT
         
@@ -22,11 +30,18 @@ class NVTEquilibrator:
             input_gro: Ruta al archivo de coordenadas (.gro)
             topol_top: Ruta al archivo de topología (.top)
             mdp_file: Ruta al archivo de parámetros NVT (.mdp)
+            temperature: Temperatura de referencia en Kelvin
+            nsteps: Número de pasos de integración
+            gmx: Ejecutable de GROMACS
         """
+        from .gmx_utils import find_gmx
+
         self.input_gro = Path(input_gro)
         self.topol_top = Path(topol_top)
         self.mdp_file = Path(mdp_file) if mdp_file else None
-        self.gmx = "/usr/local/gromacs/bin/gmx_mpi"  # Ruta completa al ejecutable de GROMACS
+        self.temperature = temperature
+        self.nsteps = nsteps
+        self.gmx = gmx or find_gmx()
         
     def check_simulation_state(self, base_dir: str) -> Tuple[str, Optional[int], Dict[str, bool]]:
         """
@@ -53,11 +68,9 @@ class NVTEquilibrator:
         # Verificar preparación
         prep_dir = base_path / "1_preparation"
         if prep_dir.exists():
-            detalles["preparation_completa"] = all([
-                (prep_dir / "topol.top").exists(),
-                (prep_dir / "topol_Protein_chain_A.itp").exists(),
-                (prep_dir / "topol_Protein_chain_B.itp").exists()
-            ])
+            detalles["preparation_completa"] = (prep_dir / "topol.top").exists() and any(
+                prep_dir.glob("*.itp")
+            )
             if not detalles["preparation_completa"]:
                 return "preparation", None, detalles
                 
@@ -83,9 +96,7 @@ class NVTEquilibrator:
                         # Verificar si la simulación está completa
                         if all([
                             (fc_dir / "nvt.gro").exists(),
-                            (fc_dir / "ener.edr").exists(),
-                            (fc_dir / "posre_Protein_chain_A.itp").exists(),
-                            (fc_dir / "posre_Protein_chain_B.itp").exists()
+                            (fc_dir / "ener.edr").exists() or (fc_dir / "nvt.edr").exists(),
                         ]):
                             detalles["nvt_constantes"].append(fc)
                             
@@ -131,57 +142,84 @@ class NVTEquilibrator:
         
     def create_posre_files(self, output_dir: Path, force_constants: list[int]) -> None:
         """
-        Crea archivos de restricción de posición para ambas cadenas
+        Crea archivos de restricción de posición a partir de los posre de pdb2gmx.
         
         Args:
             output_dir: Directorio base para los archivos de restricción
             force_constants: Lista de constantes de fuerza a usar
         """
-        # Crear directorio base para archivos de restricción
+        import shutil
+
         posre_dir = output_dir / "posre_constante"
         posre_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Crear archivos de restricción para cada constante
+        sources = list(self.topol_top.parent.glob("posre*.itp"))
+
         for fc in force_constants:
-            # Crear directorio para esta constante
             fc_dir = posre_dir / str(fc)
             fc_dir.mkdir(exist_ok=True)
-            
-            # Generar archivos de restricción para ambas cadenas
-            for chain in ["A", "B"]:
-                posre_file = fc_dir / f"posre_Protein_chain_{chain}.itp"
-                with open(posre_file, "w") as f:
-                    f.write(f"""; Position restraint file for Protein_chain_{chain}
+
+            if sources:
+                for src in sources:
+                    text = src.read_text().replace("1000", str(fc))
+                    (fc_dir / src.name).write_text(text)
+                for topo_file in self.topol_top.parent.iterdir():
+                    if topo_file.suffix in {".top", ".itp"} and not topo_file.name.startswith("posre"):
+                        shutil.copy2(topo_file, fc_dir / topo_file.name)
+                continue
+
+            (fc_dir / "posre.itp").write_text(
+                f"""; Position restraint file
 [ position_restraints ]
 ;  i funct       fcx        fcy        fcz
     1    1         {fc}         {fc}         {fc}
-""")
+"""
+            )
         
-    def create_mdp_file(self, output_path: str, title: str = "NVT Equilibration") -> Path:
+    def create_mdp_file(
+        self,
+        output_path: str,
+        title: str = "NVT Equilibration",
+        temperature: Optional[float] = None,
+        nsteps: Optional[int] = None,
+        use_posres: bool = True,
+        gen_vel: bool = True,
+        continuation: bool = False,
+    ) -> Path:
         """
         Crea un archivo de parámetros para equilibración NVT
         
         Args:
             output_path: Ruta para guardar el archivo .mdp
             title: Título de la simulación
+            temperature: Temperatura de referencia (K)
+            nsteps: Número de pasos
+            use_posres: Activar restricciones de posición (-DPOSRES)
+            gen_vel: Generar velocidades de Maxwell-Boltzmann
+            continuation: Continuar desde un estado previo
             
         Returns:
             Ruta al archivo .mdp creado
         """
         output_path = Path(output_path)
-        
+        temperature = self.temperature if temperature is None else temperature
+        nsteps = self.nsteps if nsteps is None else nsteps
+        define_line = "define              = -DPOSRES  ; restrain protein heavy atoms" if use_posres else "; define              = -DPOSRES"
+        gen_vel_flag = "yes" if gen_vel else "no"
+        continuation_flag = "yes" if continuation else "no"
+
         mdp_content = f"""; Líneas que comienzan con ';' son considerados comentarios
 title               = {title}
+{define_line}
 
 ; Parameters describing what to do, when to stop and what to save
 integrator          = md        ; leap-frog integrator
-dt                  = 0.002     ; !!! femto second
-nsteps              = 50000     ; 100 ps
-nstxout             = 500       ; save coordinates every 0.1 ps
-nstvout             = 500       ; save velocities every 0.1 ps
-nstenergy           = 500       ; save energies every 0.1 ps
-nstlog              = 500       ; update log file every 0.1 ps
-continuation        = no        ; first dynamics run
+dt                  = 0.002     ; 2 fs
+nsteps              = {nsteps}     ; {nsteps * 0.002:.1f} ps
+nstxout             = 500       ; save coordinates every 1 ps
+nstvout             = 500       ; save velocities every 1 ps
+nstenergy           = 500       ; save energies every 1 ps
+nstlog              = 500       ; update log file every 1 ps
+continuation        = {continuation_flag}
 constraint_algorithm = lincs     ; holonomic constraints 
 constraints         = h-bonds   ; bonds involving H are constrained
 lincs_iter          = 1         ; accuracy of LINCS
@@ -204,7 +242,7 @@ fourierspacing      = 0.16      ; grid spacing for FFT
 tcoupl              = V-rescale ; modified Berendsen thermostat
 tc-grps             = Protein Non-Protein ; two coupling groups - more accurate
 tau_t               = 0.1       0.1    ; time constant, in ps
-ref_t               = 300       300    ; reference temperature, one for each group, in K
+ref_t               = {temperature:g}       {temperature:g}    ; reference temperature, one for each group, in K
 
 ; Pressure coupling
 pcoupl              = no        ; no pressure coupling in NVT
@@ -213,8 +251,8 @@ pcoupl              = no        ; no pressure coupling in NVT
 pbc                 = xyz       ; 3-D PBC
 
 ; Velocity generation
-gen_vel             = yes       ; assign velocities from Maxwell distribution
-gen_temp            = 300       ; temperature for Maxwell distribution
+gen_vel             = {gen_vel_flag}       ; assign velocities from Maxwell distribution
+gen_temp            = {temperature:g}       ; temperature for Maxwell distribution
 gen_seed            = -1        ; generate a random seed
 """
         
@@ -223,25 +261,26 @@ gen_seed            = -1        ; generate a random seed
             
         return output_path
         
-    def equilibrate(self, output_dir: str, force_constants: list[int] = [1000, 800, 600, 400, 200], gpu_ids: str = "0") -> Dict[int, Dict[str, str]]:
+    def equilibrate(self, output_dir: str, force_constants: list[int] = [1000, 800, 600, 400, 200], gpu_ids: Optional[str] = None) -> Dict[int, Dict[str, str]]:
         """
         Realiza la equilibración NVT del sistema
         
         Args:
             output_dir: Directorio de salida para los archivos
             force_constants: Lista de constantes de fuerza a usar
-            gpu_ids: IDs de las GPUs a usar
+            gpu_ids: IDs de las GPUs a usar. None ejecuta en CPU.
             
         Returns:
             Diccionario con las rutas de los archivos generados para cada constante
         """
         output_path = Path(output_dir)
         results = {}
+        current_gro = self.input_gro
         
         # Crear archivos de restricción
         self.create_posre_files(output_path, force_constants)
         
-        for fc in force_constants:
+        for index, fc in enumerate(force_constants):
             console.print(f"\n[bold cyan]Ejecutando equilibración NVT con constante de fuerza {fc}[/bold cyan]")
             
             # Crear directorio para esta constante
@@ -250,17 +289,28 @@ gen_seed            = -1        ; generate a random seed
             
             # Crear archivo de parámetros NVT
             mdp_file = fc_dir / "nvt.mdp"
-            self.create_mdp_file(mdp_file)
+            self.create_mdp_file(
+                mdp_file,
+                title=f"NVT fc={fc} T={self.temperature:g} K",
+                use_posres=True,
+                gen_vel=(index == 0),
+                continuation=(index > 0),
+            )
+
+            topology = fc_dir / "topol.top"
+            if not topology.exists():
+                topology = self.topol_top
             
             # Generar archivo .tpr
             tpr_file = fc_dir / "topol.tpr"
             cmd = [
                 self.gmx, "grompp",
                 "-f", str(mdp_file),
-                "-c", str(self.input_gro),
+                "-c", str(current_gro),
                 "-r", str(self.input_gro),
-                "-p", str(self.topol_top),
-                "-o", str(tpr_file)
+                "-p", str(topology),
+                "-o", str(tpr_file),
+                "-maxwarn", "1",
             ]
             
             with Progress() as progress:
@@ -273,10 +323,10 @@ gen_seed            = -1        ; generate a random seed
                 self.gmx, "mdrun",
                 "-v",
                 "-s", str(tpr_file),
-                "-gpu_id", gpu_ids,
-                "-pme", "gpu",
-                "-deffnm", str(fc_dir / "nvt")  # Especificar el prefijo de los archivos de salida
+                "-deffnm", str(fc_dir / "nvt"),
             ]
+            if gpu_ids:
+                cmd.extend(["-gpu_id", gpu_ids, "-pme", "gpu"])
             
             with Progress() as progress:
                 task = progress.add_task(f"[cyan]Ejecutando equilibración NVT para fc={fc}...", total=100)
@@ -297,10 +347,12 @@ gen_seed            = -1        ; generate a random seed
                 task = progress.add_task(f"[cyan]Procesando estructura final para fc={fc}...", total=100)
                 subprocess.run(cmd, input=b"1 0\n", check=True)
                 progress.update(task, completed=100)
+
+            current_gro = fc_dir / "tmp.gro"
             
             # Guardar resultados
             results[fc] = {
-                "gro": str(fc_dir / "tmp.gro"),
+                "gro": str(current_gro),
                 "edr": str(fc_dir / "nvt.edr"),
                 "log": str(fc_dir / "nvt.log")
             }

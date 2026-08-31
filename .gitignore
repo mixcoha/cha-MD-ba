@@ -18,6 +18,7 @@ __pycache__/
 *.gro
 *.tpr
 *.mdp
+!benchmarks/**/*.mdp
 *.itp
 
 # Directorios de datos
@@ -85,6 +86,7 @@ Thumbs.db
 *.edr
 *.log
 *.mdp
+!benchmarks/**/*.mdp
 *.cpt
 *.tpr
 *.itp
