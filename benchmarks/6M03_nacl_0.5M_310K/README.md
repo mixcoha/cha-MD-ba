@@ -22,27 +22,19 @@ clon local y **no se suben a GitHub**. Aquí solo está el protocolo.
 
 ## Cómo ejecutarlo (local)
 
-Desde la raíz del repositorio:
+Desde la raíz del repositorio (GROMACS en PATH; GPU opcional):
 
 ```bash
-python scripts/run_benchmark_6m03.py --gpu-ids 0
+python scripts/run_benchmark_6m03.py --resume
 ```
 
-Salida por defecto: `work/6M03/` y PDB en `work/data/`.
-Etapas por defecto: `download`, `clean`, `prepare`, `mdps`, `minimize`.
+Eso escribe en `work/6M03/` y continúa desde la etapa que falte.
+`--gpu-ids auto` (por defecto) usa la GPU 0 si hay NVIDIA; `--gpu-ids none` fuerza CPU.
 
 Para generar solo los `.mdp` a 310 K (sin GROMACS):
 
 ```bash
 python scripts/run_benchmark_6m03.py --stages mdps
-```
-
-Para continuar con equilibración:
-
-```bash
-python scripts/run_benchmark_6m03.py \
-    --stages download,clean,prepare,mdps,minimize,nvt,npt \
-    --gpu-ids 0
 ```
 
 ## Pipeline

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
 from typing import Optional
 
 
@@ -42,3 +43,31 @@ def gmx_is_available(gmx: Optional[str] = None) -> bool:
     """Indica si GROMACS está disponible en el entorno."""
     resolved = find_gmx(gmx)
     return bool(shutil.which(resolved) or (os.path.isfile(resolved) and os.access(resolved, os.X_OK)))
+
+
+def detect_gpu_ids(value: Optional[str] = "auto") -> Optional[str]:
+    """Resuelve IDs de GPU: ``auto`` usa la GPU 0 si hay NVIDIA; ``none``/``cpu`` fuerza CPU."""
+    if value is None:
+        value = "auto"
+    normalized = str(value).strip().lower()
+    if normalized in {"none", "cpu", ""}:
+        return None
+    if normalized != "auto":
+        return str(value).strip()
+
+    nvidia = shutil.which("nvidia-smi")
+    if not nvidia:
+        return None
+    try:
+        completed = subprocess.run(
+            [nvidia, "-L"],
+            capture_output=True,
+            text=True,
+            timeout=8,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if completed.returncode == 0 and "GPU" in completed.stdout:
+        return "0"
+    return None

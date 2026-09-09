@@ -92,19 +92,18 @@ class NVTEquilibrator:
                 force_constants = [1000, 800, 600, 400, 200]
                 for fc in force_constants:
                     fc_dir = posre_dir / str(fc)
-                    if fc_dir.exists():
-                        # Verificar si la simulación está completa
-                        if all([
-                            (fc_dir / "nvt.gro").exists(),
-                            (fc_dir / "ener.edr").exists() or (fc_dir / "nvt.edr").exists(),
-                        ]):
-                            detalles["nvt_constantes"].append(fc)
-                            
+                    if fc_dir.exists() and all([
+                        (fc_dir / "nvt.gro").exists(),
+                        (fc_dir / "ener.edr").exists() or (fc_dir / "nvt.edr").exists(),
+                    ]):
+                        detalles["nvt_constantes"].append(fc)
+                    else:
+                        break
+
                 if not detalles["nvt_constantes"]:
                     return "nvt", 1000, detalles
-                    
-                # Encontrar la última constante completada
-                last_completed = max(detalles["nvt_constantes"])
+
+                last_completed = detalles["nvt_constantes"][-1]
                 
                 # Verificar si es la última constante
                 if last_completed == 200:
@@ -286,7 +285,18 @@ gen_seed            = -1        ; generate a random seed
             # Crear directorio para esta constante
             fc_dir = output_path / "posre_constante" / str(fc)
             fc_dir.mkdir(parents=True, exist_ok=True)
-            
+            gro_out = fc_dir / "nvt.gro"
+            edr_out = fc_dir / "nvt.edr"
+            if gro_out.exists() and (edr_out.exists() or (fc_dir / "ener.edr").exists()):
+                console.print(f"[yellow]NVT fc={fc} ya completo; se omite mdrun.[/yellow]")
+                current_gro = fc_dir / "tmp.gro" if (fc_dir / "tmp.gro").exists() else gro_out
+                results[fc] = {
+                    "gro": str(current_gro),
+                    "edr": str(edr_out if edr_out.exists() else fc_dir / "ener.edr"),
+                    "log": str(fc_dir / "nvt.log"),
+                }
+                continue
+
             # Crear archivo de parámetros NVT
             mdp_file = fc_dir / "nvt.mdp"
             self.create_mdp_file(
@@ -312,6 +322,10 @@ gen_seed            = -1        ; generate a random seed
                 "-o", str(tpr_file),
                 "-maxwarn", "1",
             ]
+            if index > 0:
+                prev_cpt = output_path / "posre_constante" / str(force_constants[index - 1]) / "nvt.cpt"
+                if prev_cpt.exists():
+                    cmd.extend(["-t", str(prev_cpt)])
             
             with Progress() as progress:
                 task = progress.add_task("[cyan]Generando archivo .tpr...", total=100)

@@ -7,9 +7,10 @@ from cha_md_ba.benchmark import (
     DEFAULT_OUTPUT_DIR,
     Benchmark6M03Config,
     parse_system_composition,
+    resume_stages,
     write_protocol_mdps,
 )
-from cha_md_ba.gmx_utils import find_gmx
+from cha_md_ba.gmx_utils import detect_gpu_ids, find_gmx
 from cha_md_ba.npt import NPTEquilibrator
 from cha_md_ba.nvt import NVTEquilibrator
 from cha_md_ba.pdb_utils import clean_protein_pdb
@@ -146,3 +147,78 @@ def test_find_gmx_respects_env(tmp_path, monkeypatch):
     fake.chmod(0o755)
     monkeypatch.setenv("CHA_MD_BA_GMXBIN", str(fake))
     assert find_gmx() == str(fake)
+
+
+def test_resume_stages_from_empty_dir(tmp_path):
+    stages = resume_stages(tmp_path, Benchmark6M03Config())
+    assert stages[0] == "download"
+    assert "nvt" in stages
+    assert "npt" in stages
+
+
+def test_resume_stages_continues_nvt_after_minimize(tmp_path):
+    base = tmp_path / "6M03"
+    prep = base / "1_preparation"
+    prep.mkdir(parents=True)
+    (prep / "topol.top").write_text("[ molecules ]\nSOL 1\n")
+    (prep / "6M03_ions.gro").write_text("dummy\n")
+    min_dir = base / "2_minimization"
+    min_dir.mkdir()
+    (min_dir / "minimized.gro").write_text("dummy\n")
+    nvt_1000 = base / "3_nvt" / "posre_constante" / "1000"
+    nvt_1000.mkdir(parents=True)
+    (nvt_1000 / "nvt.gro").write_text("dummy\n")
+    (nvt_1000 / "nvt.edr").write_bytes(b"")
+
+    stages = resume_stages(tmp_path, Benchmark6M03Config())
+    assert stages == ["nvt", "npt"]
+
+
+def test_resume_stages_npt_when_nvt_done(tmp_path):
+    base = tmp_path / "6M03"
+    prep = base / "1_preparation"
+    prep.mkdir(parents=True)
+    (prep / "topol.top").write_text("[ molecules ]\nSOL 1\n")
+    (prep / "6M03_ions.gro").write_text("dummy\n")
+    min_dir = base / "2_minimization"
+    min_dir.mkdir()
+    (min_dir / "minimized.gro").write_text("dummy\n")
+    for fc in (1000, 800, 600, 400, 200):
+        fc_dir = base / "3_nvt" / "posre_constante" / str(fc)
+        fc_dir.mkdir(parents=True)
+        (fc_dir / "nvt.gro").write_text("dummy\n")
+        (fc_dir / "nvt.edr").write_bytes(b"")
+
+    stages = resume_stages(tmp_path, Benchmark6M03Config())
+    assert stages == ["npt"]
+
+
+def test_nvt_skips_completed_force_constant(tmp_path, monkeypatch):
+    gro = tmp_path / "min.gro"
+    top = tmp_path / "topol.top"
+    gro.write_text("dummy\n")
+    top.write_text("[ molecules ]\n")
+    nvt_dir = tmp_path / "3_nvt"
+    done = nvt_dir / "posre_constante" / "1000"
+    done.mkdir(parents=True)
+    (done / "nvt.gro").write_text("done\n")
+    (done / "nvt.edr").write_bytes(b"")
+    (done / "tmp.gro").write_text("centered\n")
+
+    captured = []
+
+    def fake_run(cmd, **kwargs):
+        captured.append(list(cmd))
+        return Mock(returncode=0)
+
+    monkeypatch.setattr("cha_md_ba.nvt.subprocess.run", fake_run)
+    nvt = NVTEquilibrator(str(gro), str(top), temperature=310, gmx="gmx")
+    results = nvt.equilibrate(str(nvt_dir), force_constants=[1000])
+    assert results[1000]["gro"].endswith("tmp.gro")
+    assert captured == []
+
+
+def test_detect_gpu_ids_none_and_explicit():
+    assert detect_gpu_ids("none") is None
+    assert detect_gpu_ids("cpu") is None
+    assert detect_gpu_ids("0") == "0"

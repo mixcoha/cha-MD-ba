@@ -23,7 +23,7 @@ Ejecución
 
 .. code-block:: bash
 
-   python scripts/run_benchmark_6m03.py --gpu-ids 0
+   python scripts/run_benchmark_6m03.py --resume
 
 Desde Python:
 

@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from rich.console import Console
 
-from .gmx_utils import find_gmx, gmx_is_available
+from .gmx_utils import detect_gpu_ids, find_gmx, gmx_is_available
 from .minimize import EnergyMinimizer
 from .npt import NPTEquilibrator
 from .nvt import NVTEquilibrator
@@ -48,6 +48,75 @@ class Benchmark6M03Config:
     nvt_force_constants: tuple = (1000, 800, 600, 400, 200)
     ion_positive: str = "NA"
     ion_negative: str = "CL"
+
+
+def system_paths(output_dir: Path, pdb_id: str) -> Dict[str, Path]:
+    """Rutas estándar de una corrida local bajo ``output_dir/pdb_id``."""
+    base = Path(output_dir) / pdb_id
+    prep = base / "1_preparation"
+    return {
+        "base_dir": base,
+        "preparation_dir": prep,
+        "minimization_dir": base / "2_minimization",
+        "nvt_dir": base / "3_nvt",
+        "npt_dir": base / "4_npt",
+        "production_dir": base / "5_production",
+        "topology": prep / "topol.top",
+        "ions": prep / f"{pdb_id}_ions.gro",
+        "minimized": base / "2_minimization" / "minimized.gro",
+    }
+
+
+def nvt_stage_complete(nvt_dir: Path, force_constant: int) -> bool:
+    """True si esa constante de POSRES ya tiene estructura y energías NVT."""
+    fc_dir = Path(nvt_dir) / "posre_constante" / str(force_constant)
+    has_gro = (fc_dir / "nvt.gro").exists()
+    has_edr = (fc_dir / "nvt.edr").exists() or (fc_dir / "ener.edr").exists()
+    return has_gro and has_edr
+
+
+def nvt_output_gro(nvt_dir: Path, force_constant: int) -> Path:
+    """GRO de salida de un NVT (centrado si existe ``tmp.gro``)."""
+    fc_dir = Path(nvt_dir) / "posre_constante" / str(force_constant)
+    centered = fc_dir / "tmp.gro"
+    return centered if centered.exists() else fc_dir / "nvt.gro"
+
+
+def last_completed_nvt_fc(nvt_dir: Path, force_constants: tuple) -> Optional[int]:
+    """Última constante NVT completada en orden; no usa max() numérico."""
+    last: Optional[int] = None
+    for force_constant in force_constants:
+        if nvt_stage_complete(nvt_dir, force_constant):
+            last = force_constant
+        else:
+            break
+    return last
+
+
+def load_prepared_paths(output_dir: Path, pdb_id: str) -> Dict[str, Path]:
+    """Reconstruye las rutas de un sistema ya preparado en ``work/``."""
+    paths = system_paths(output_dir, pdb_id)
+    missing = [name for name in ("topology", "ions") if not paths[name].exists()]
+    if missing:
+        raise RuntimeError(
+            f"No hay sistema preparado en {paths['base_dir']} "
+            f"(faltan: {', '.join(missing)}). Ejecuta --resume o la etapa prepare."
+        )
+    return paths
+
+
+def resume_stages(output_dir: Path, config: Benchmark6M03Config) -> List[str]:
+    """Elige las etapas que faltan para continuar una corrida local."""
+    paths = system_paths(output_dir, config.pdb_id)
+    if not paths["topology"].exists() or not paths["ions"].exists():
+        return ["download", "clean", "prepare", "mdps", "minimize", "nvt", "npt"]
+    if not paths["minimized"].exists():
+        return ["mdps", "minimize", "nvt", "npt"]
+    if last_completed_nvt_fc(paths["nvt_dir"], config.nvt_force_constants) != config.nvt_force_constants[-1]:
+        return ["nvt", "npt"]
+    if not (paths["npt_dir"] / "npt.gro").exists():
+        return ["npt"]
+    return []
 
 
 def parse_system_composition(topol_path: Path) -> Dict[str, int]:
@@ -171,58 +240,82 @@ def run_benchmark(
         mdps = write_protocol_mdps(protocol_dir, config)
         result["mdps"] = {key: str(path) for key, path in mdps.items()}
 
+    needs_system = any(stage in stages for stage in ("prepare", "minimize", "nvt", "npt"))
     prepared = None
+    if needs_system:
+        existing = system_paths(base_output, config.pdb_id)
+        if existing["topology"].exists() and existing["ions"].exists() and "prepare" not in stages:
+            prepared = load_prepared_paths(base_output, config.pdb_id)
+            result["preparation"] = {key: str(value) for key, value in prepared.items()}
+            result["composition"] = parse_system_composition(prepared["topology"])
+            console.print(f"[green]Reutilizando sistema en {prepared['base_dir']}[/green]")
+
     if "prepare" in stages:
-        if not gmx_is_available(gmx_cmd):
-            raise RuntimeError(
-                "GROMACS no está disponible. Instálalo o define CHA_MD_BA_GMXBIN. "
-                "Los MDP del protocolo ya pueden generarse con --stages mdps."
+        existing = system_paths(base_output, config.pdb_id)
+        if existing["topology"].exists() and existing["ions"].exists():
+            console.print("[yellow]Sistema ya preparado; se reutiliza (no se vuelve a solvar).[/yellow]")
+            prepared = load_prepared_paths(base_output, config.pdb_id)
+            result["preparation"] = {key: str(value) for key, value in prepared.items()}
+            result["composition"] = parse_system_composition(prepared["topology"])
+            console.print(f"[green]Composición: {result['composition']}[/green]")
+        else:
+            if not gmx_is_available(gmx_cmd):
+                raise RuntimeError(
+                    "GROMACS no está disponible. Instálalo o define CHA_MD_BA_GMXBIN. "
+                    "Los MDP del protocolo ya pueden generarse con --stages mdps."
+                )
+            pdb_for_prep = clean_pdb if clean_pdb.exists() else raw_pdb
+            console.print(
+                f"[cyan]Preparando sistema: {config.forcefield}, {config.water_model}, "
+                f"NaCl {config.ion_concentration} M...[/cyan]"
             )
-        pdb_for_prep = clean_pdb if clean_pdb.exists() else raw_pdb
-        console.print(
-            f"[cyan]Preparando sistema: {config.forcefield}, {config.water_model}, "
-            f"NaCl {config.ion_concentration} M...[/cyan]"
-        )
-        preparator = MDSystemPreparator(
-            pdb_path=str(pdb_for_prep),
-            forcefield=config.forcefield,
-            water_model=config.water_model,
-            ion_concentration=config.ion_concentration,
-            gmx=gmx_cmd,
-            ion_positive=config.ion_positive,
-            ion_negative=config.ion_negative,
-        )
-        prepared = preparator.prepare_system(
-            output_dir=str(base_output),
-            box_type=config.box_type,
-            box_size=config.box_distance,
-            ions=True,
-            minimize=False,
-        )
-        result["preparation"] = {key: str(value) if value is not None else None for key, value in prepared.items()}
-        composition = parse_system_composition(prepared["topology"])
-        result["composition"] = composition
-        console.print(f"[green]Composición: {composition}[/green]")
+            preparator = MDSystemPreparator(
+                pdb_path=str(pdb_for_prep),
+                forcefield=config.forcefield,
+                water_model=config.water_model,
+                ion_concentration=config.ion_concentration,
+                gmx=gmx_cmd,
+                ion_positive=config.ion_positive,
+                ion_negative=config.ion_negative,
+            )
+            prepared = preparator.prepare_system(
+                output_dir=str(base_output),
+                box_type=config.box_type,
+                box_size=config.box_distance,
+                ions=True,
+                minimize=False,
+            )
+            result["preparation"] = {key: str(value) if value is not None else None for key, value in prepared.items()}
+            composition = parse_system_composition(prepared["topology"])
+            result["composition"] = composition
+            console.print(f"[green]Composición: {composition}[/green]")
 
     if "minimize" in stages:
         if prepared is None:
-            raise RuntimeError("La minimización requiere la etapa 'prepare'.")
-        console.print("[cyan]Minimización de energía...[/cyan]")
-        minimizer = EnergyMinimizer(
-            input_gro=str(prepared["ions"]),
-            topol_top=str(prepared["topology"]),
-            gmx=gmx_cmd,
-            nsteps=config.minimization_nsteps,
-        )
-        min_files = minimizer.minimize(prepared["minimization_dir"], gpu_ids=gpu_ids)
-        result["minimization"] = {key: str(path) for key, path in min_files.items()}
+            prepared = load_prepared_paths(base_output, config.pdb_id)
+        min_gro = Path(prepared["minimization_dir"]) / "minimized.gro"
+        if min_gro.exists():
+            console.print("[yellow]Minimización ya completa; se reutiliza minimized.gro.[/yellow]")
+            result["minimization"] = {"final": str(min_gro)}
+        else:
+            console.print("[cyan]Minimización de energía...[/cyan]")
+            minimizer = EnergyMinimizer(
+                input_gro=str(prepared["ions"]),
+                topol_top=str(prepared["topology"]),
+                gmx=gmx_cmd,
+                nsteps=config.minimization_nsteps,
+            )
+            min_files = minimizer.minimize(prepared["minimization_dir"], gpu_ids=gpu_ids)
+            result["minimization"] = {key: str(path) for key, path in min_files.items()}
 
     if "nvt" in stages:
         if prepared is None:
-            raise RuntimeError("NVT requiere la etapa 'prepare'.")
-        min_gro = Path(str(result.get("minimization", {}).get("final") or prepared["minimization_dir"] / "minimized.gro"))
+            prepared = load_prepared_paths(base_output, config.pdb_id)
+        min_gro = Path(
+            str(result.get("minimization", {}).get("final") or Path(prepared["minimization_dir"]) / "minimized.gro")
+        )
         if not min_gro.exists():
-            raise RuntimeError("No hay estructura minimizada; ejecuta la etapa 'minimize'.")
+            raise RuntimeError("No hay estructura minimizada; ejecuta la etapa 'minimize' o --resume.")
         console.print(f"[cyan]Equilibración NVT a {config.temperature} K...[/cyan]")
         nvt = NVTEquilibrator(
             input_gro=str(min_gro),
@@ -239,22 +332,34 @@ def run_benchmark(
         result["nvt"] = nvt_files
 
     if "npt" in stages:
+        if prepared is None:
+            prepared = load_prepared_paths(base_output, config.pdb_id)
         nvt_result = result.get("nvt")
-        if not nvt_result:
-            raise RuntimeError("NPT requiere la etapa 'nvt'.")
         last_fc = list(config.nvt_force_constants)[-1]
-        last_gro = nvt_result[last_fc]["gro"]
-        console.print(f"[cyan]Equilibración NPT a {config.temperature} K y {config.pressure} bar...[/cyan]")
-        npt = NPTEquilibrator(
-            input_gro=str(last_gro),
-            topol_top=str(prepared["topology"]),
-            temperature=config.temperature,
-            nsteps=config.npt_nsteps,
-            pressure=config.pressure,
-            gmx=gmx_cmd,
-        )
-        npt_files = npt.equilibrate(prepared["npt_dir"], gpu_ids=gpu_ids)
-        result["npt"] = {key: str(path) for key, path in npt_files.items()}
+        if not nvt_result:
+            if not nvt_stage_complete(prepared["nvt_dir"], last_fc):
+                raise RuntimeError("NPT requiere NVT completo (POSRES 200). Ejecuta --resume.")
+            last_gro = nvt_output_gro(prepared["nvt_dir"], last_fc)
+            nvt_result = {last_fc: {"gro": str(last_gro)}}
+            result["nvt"] = nvt_result
+        nvt_last = nvt_result.get(last_fc) or nvt_result.get(str(last_fc))
+        last_gro = nvt_last["gro"]
+        npt_gro = Path(prepared["npt_dir"]) / "npt.gro"
+        if npt_gro.exists():
+            console.print("[yellow]NPT ya completo; se reutiliza npt.gro.[/yellow]")
+            result["npt"] = {"final": str(npt_gro)}
+        else:
+            console.print(f"[cyan]Equilibración NPT a {config.temperature} K y {config.pressure} bar...[/cyan]")
+            npt = NPTEquilibrator(
+                input_gro=str(last_gro),
+                topol_top=str(prepared["topology"]),
+                temperature=config.temperature,
+                nsteps=config.npt_nsteps,
+                pressure=config.pressure,
+                gmx=gmx_cmd,
+            )
+            npt_files = npt.equilibrate(prepared["npt_dir"], gpu_ids=gpu_ids)
+            result["npt"] = {key: str(path) for key, path in npt_files.items()}
 
     report_dir = base_output / config.pdb_id
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -298,7 +403,16 @@ def build_parser() -> argparse.ArgumentParser:
         default="download,clean,prepare,mdps,minimize",
         help="Etapas separadas por coma: download,clean,prepare,mdps,minimize,nvt,npt",
     )
-    parser.add_argument("--gpu-ids", default=None, help='IDs de GPU, p. ej. "0". Vacío = solo CPU')
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Continúa la corrida local en work/ desde la etapa que falte (NVT/NPT inclusive)",
+    )
+    parser.add_argument(
+        "--gpu-ids",
+        default="auto",
+        help='IDs de GPU ("0", "01"), "auto" (GPU 0 si hay NVIDIA) o "none" para CPU',
+    )
     parser.add_argument("--gmx", default=None, help="Ejecutable de GROMACS (gmx / gmx_mpi)")
     parser.add_argument("--em-nsteps", type=int, default=None, help="Pasos máximos de minimización")
     parser.add_argument("--box-distance", type=float, default=None, help="Distancia proteína-caja en nm")
@@ -312,13 +426,25 @@ def run_6m03_benchmark(argv: Optional[List[str]] = None) -> int:
         config.minimization_nsteps = args.em_nsteps
     if args.box_distance:
         config.box_distance = args.box_distance
-    stages = [item.strip() for item in args.stages.split(",") if item.strip()]
+    gpu_ids = detect_gpu_ids(args.gpu_ids)
+    if args.resume:
+        stages = resume_stages(Path(args.output_dir), config)
+        if not stages:
+            console.print("[bold green]La corrida local ya está completa (NVT + NPT).[/bold green]")
+            return 0
+        console.print(f"[cyan]Reanudando etapas: {', '.join(stages)}[/cyan]")
+        if gpu_ids:
+            console.print(f"[cyan]GPU: {gpu_ids}[/cyan]")
+        else:
+            console.print("[yellow]Sin GPU: mdrun en CPU (más lento).[/yellow]")
+    else:
+        stages = [item.strip() for item in args.stages.split(",") if item.strip()]
     run_benchmark(
         config=config,
         output_dir=args.output_dir,
         data_dir=args.data_dir,
         stages=stages,
-        gpu_ids=args.gpu_ids,
+        gpu_ids=gpu_ids,
         gmx=args.gmx,
     )
     return 0

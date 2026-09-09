@@ -23,20 +23,21 @@ git fetch origin cursor/6m03-benchmark-nacl-310k-c08b
 git checkout cursor/6m03-benchmark-nacl-310k-c08b
 ```
 
-Instala el paquete (o usa `PYTHONPATH=python_version`) y GROMACS, y lanza:
+Necesitas GROMACS (p. ej. 2023.3) y, si hay NVIDIA, el driver. Luego:
 
 ```bash
-python scripts/run_benchmark_6m03.py --gpu-ids 0
+python scripts/run_benchmark_6m03.py --resume
 ```
 
-Por defecto escribe en `work/` y `work/data/`. Para continuar una
-equilibración ya empezada:
+`--resume` mira `work/6M03/` y continúa desde lo que falte (preparación,
+minimización, NVT POSRES 1000→200, NPT). Si no hay nada, empieza de cero.
+La GPU 0 se usa sola si `nvidia-smi` ve una tarjeta; si no, corre en CPU.
+Para forzar CPU: `--gpu-ids none`. Para una GPU concreta: `--gpu-ids 0`.
 
-```bash
-python scripts/run_benchmark_6m03.py \
-    --stages nvt,npt \
-    --gpu-ids 0
-```
+Por defecto escribe en `work/` y `work/data/`.
+
+Si interrumpes un `mdrun`, vuelve a lanzar el mismo comando `--resume`:
+las constantes NVT que ya tengan `nvt.gro` + `nvt.edr` no se repiten.
 
 `data/` y `simulations/` siguen ignorados por compatibilidad; el
 pipeline nuevo usa `work/`.
