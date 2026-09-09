@@ -115,6 +115,22 @@ Análisis
    # Realizar análisis de clusters
    clusters = analyzer.cluster_analysis()
 
+Benchmark 6M03 (NaCl 0.5 M, 310 K)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   from cha_md_ba.benchmark import Benchmark6M03Config, run_benchmark
+
+   result = run_benchmark(
+       config=Benchmark6M03Config(),
+       stages=["download", "clean", "prepare", "mdps"],
+   )
+
+.. code-block:: bash
+
+   python scripts/run_benchmark_6m03.py --stages download,clean,prepare,mdps,minimize
+
 Uso Avanzado
 -----------
 

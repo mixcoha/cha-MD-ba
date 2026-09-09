@@ -25,12 +25,18 @@ def main():
 @click.option('--water-model', default='tip3p', help='Modelo de agua a utilizar')
 @click.option('--box-type', default='dodecahedron', help='Tipo de caja de simulación')
 @click.option('--box-size', type=float, help='Tamaño de la caja de simulación')
+@click.option('--ion-concentration', type=float, default=None, help='Concentración de NaCl en mol/L (p. ej. 0.5). Sin valor, solo se neutraliza.')
 @click.option('--no-ions', is_flag=True, help='No agregar iones al sistema')
 @click.option('--no-minimize', is_flag=True, help='No realizar minimización de energía')
 @click.option('--gpu-ids', help='IDs de GPUs a utilizar para minimización (ej. "01" para usar GPUs 0 y 1)')
-def prepare(pdb_path, output_dir, forcefield, water_model, box_type, box_size, no_ions, no_minimize, gpu_ids):
+def prepare(pdb_path, output_dir, forcefield, water_model, box_type, box_size, ion_concentration, no_ions, no_minimize, gpu_ids):
     """Prepara un sistema para simulación de dinámica molecular"""
-    preparator = MDSystemPreparator(pdb_path, forcefield, water_model)
+    preparator = MDSystemPreparator(
+        pdb_path,
+        forcefield,
+        water_model,
+        ion_concentration=ion_concentration,
+    )
     
     try:
         files = preparator.prepare_system(
@@ -39,7 +45,8 @@ def prepare(pdb_path, output_dir, forcefield, water_model, box_type, box_size, n
             box_size=box_size,
             ions=not no_ions,
             minimize=not no_minimize,
-            gpu_ids=gpu_ids
+            gpu_ids=gpu_ids,
+            ion_concentration=ion_concentration,
         )
         
         console.print("[green]Sistema preparado exitosamente!")
@@ -86,10 +93,11 @@ def minimize(gro_path, top_path, output_dir, mdp_file, gpu_ids):
 @click.argument('top_path', type=click.Path(exists=True))
 @click.argument('output_dir', type=click.Path())
 @click.option('--mdp-file', type=click.Path(exists=True), help='Archivo de parámetros NVT (.mdp)')
+@click.option('--temperature', type=float, default=300.0, help='Temperatura de referencia en Kelvin')
 @click.option('--gpu-ids', help='IDs de GPUs a utilizar (ej. "01" para usar GPUs 0 y 1)')
-def nvt(gro_path, top_path, output_dir, mdp_file, gpu_ids):
+def nvt(gro_path, top_path, output_dir, mdp_file, temperature, gpu_ids):
     """Realiza equilibración NVT de un sistema"""
-    equilibrator = NVTEquilibrator(gro_path, top_path, mdp_file)
+    equilibrator = NVTEquilibrator(gro_path, top_path, mdp_file, temperature=temperature)
     
     try:
         files = equilibrator.equilibrate(output_dir, gpu_ids)
@@ -108,10 +116,11 @@ def nvt(gro_path, top_path, output_dir, mdp_file, gpu_ids):
 @click.argument('top_path', type=click.Path(exists=True))
 @click.argument('output_dir', type=click.Path())
 @click.option('--mdp-file', type=click.Path(exists=True), help='Archivo de parámetros NPT (.mdp)')
+@click.option('--temperature', type=float, default=300.0, help='Temperatura de referencia en Kelvin')
 @click.option('--gpu-ids', help='IDs de GPUs a utilizar (ej. "01" para usar GPUs 0 y 1)')
-def npt(gro_path, top_path, output_dir, mdp_file, gpu_ids):
+def npt(gro_path, top_path, output_dir, mdp_file, temperature, gpu_ids):
     """Realiza equilibración NPT de un sistema"""
-    equilibrator = NPTEquilibrator(gro_path, top_path, mdp_file)
+    equilibrator = NPTEquilibrator(gro_path, top_path, mdp_file, temperature=temperature)
     
     try:
         files = equilibrator.equilibrate(output_dir, gpu_ids)
@@ -130,10 +139,11 @@ def npt(gro_path, top_path, output_dir, mdp_file, gpu_ids):
 @click.argument('top_path', type=click.Path(exists=True))
 @click.argument('output_dir', type=click.Path())
 @click.option('--num-runs', default=1, help='Número de corridas de producción a ejecutar')
+@click.option('--temperature', type=float, default=300.0, help='Temperatura de referencia en Kelvin')
 @click.option('--gpu-ids', help='IDs de GPUs a utilizar (ej. "01" para usar GPUs 0 y 1)')
-def production(gro_path, top_path, output_dir, num_runs, gpu_ids):
+def production(gro_path, top_path, output_dir, num_runs, temperature, gpu_ids):
     """Ejecuta corridas de producción NPT"""
-    equilibrator = NPTEquilibrator(gro_path, top_path)
+    equilibrator = NPTEquilibrator(gro_path, top_path, temperature=temperature)
     
     try:
         results = equilibrator.run_production(output_dir, num_runs, gpu_ids)

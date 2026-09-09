@@ -18,6 +18,7 @@ __pycache__/
 *.gro
 *.tpr
 *.mdp
+!benchmarks/**/*.mdp
 *.itp
 
 # Directorios de datos
@@ -85,6 +86,7 @@ Thumbs.db
 *.edr
 *.log
 *.mdp
+!benchmarks/**/*.mdp
 *.cpt
 *.tpr
 *.itp
@@ -155,4 +157,12 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
-.hypothesis/ 
+.hypothesis/
+
+# Plantillas de protocolo en benchmarks/ (solo .mdp; nunca gro/pdb/trr/log).
+!benchmarks/**/*.mdp
+
+# Espacio de trabajo local: corridas MD que NO se suben a GitHub.
+# data/ y simulations/ quedan ignorados por compatibilidad con corridas antiguas.
+work/**
+!work/README.md
