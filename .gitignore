@@ -159,8 +159,15 @@ coverage.xml
 *.cover
 .hypothesis/
 
-# Plantillas de protocolo en benchmarks/ (solo .mdp; nunca gro/pdb/trr/log).
-!benchmarks/**/*.mdp
+!cluster/**/*.mdp
+!cluster/**/*.pdb
+!cluster/**/*.slurm
+
+# Caché y corridas del paquete LARCAD (no versionar trayectorias).
+cluster/larcad/.cache/
+cluster/larcad/runs/
+cluster/larcad/logs/
+cluster/larcad/env.sh
 
 # Espacio de trabajo local: corridas MD que NO se suben a GitHub.
 # data/ y simulations/ quedan ignorados por compatibilidad con corridas antiguas.

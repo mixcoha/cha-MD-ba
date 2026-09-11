@@ -45,6 +45,8 @@ python scripts/run_benchmark_6m03.py --model all --resume  # los tres mutantes
 ```
 
 El silvestre escribe en `work/6M03/`; cada mutante tiene su carpeta.
+En el clúster (LARCAD) el paquete a copiar está en `cluster/larcad/`
+(`scripts/pack_larcad_6m03.py` y `scripts/upload_larcad.sh`).
 `--gpu-ids auto` (por defecto) usa la GPU 0 si hay NVIDIA; `--gpu-ids none` fuerza CPU.
 
 Para generar solo los `.mdp` a 310 K (sin GROMACS):

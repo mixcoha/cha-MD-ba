@@ -40,6 +40,14 @@ y continúa desde lo que falte.
 La GPU 0 se usa sola si `nvidia-smi` ve una tarjeta; si no, corre en CPU.
 Para forzar CPU: `--gpu-ids none`. Para una GPU concreta: `--gpu-ids 0`.
 
+Para el nodo de LARCAD, copia `cluster/larcad/` (ver `cluster/larcad/README.md`):
+
+```bash
+python3 scripts/pack_larcad_6m03.py
+export LARCAD_HOST=usuario@HOST
+bash scripts/upload_larcad.sh
+```
+
 Por defecto escribe en `work/` y `work/data/`.
 
 Si interrumpes un `mdrun`, vuelve a lanzar el mismo comando `--resume`:
