@@ -43,14 +43,16 @@ cp env.sh.example env.sh
 # Colas: larcad (n1–n4 CPU) y gpu_rtxA5000 (gpu1, RTX A5000).
 # Módulos: gromacs-mpi-2026.2  /  gromacs-mpi-cuda-2026.2
 cp env.sh.example env.sh
-# Primero un solo modelo (hay 1 GPU; así ves el error si falla):
-bash submit_all.sh 6M03_H41A
+# Primero UN modelo (hay 1 GPU). No uses sed ni --export=ALL.
+mkdir -p logs
+bash submit_one.sh 6M03_H41A
 squeue -u "$USER"
 ```
 
 Los tres mutantes: `bash submit_all.sh`. Con una GPU, C145A y el doble esperan.
 
-Un solo modelo a mano: `MODEL=6M03_H41A sbatch --export=ALL,MODEL=6M03_H41A submit_model.slurm`
+No encoles a mano con `--export=ALL` ni parchees `submit_model.slurm` con `sed`.
+Si Slurm escribe a `logs/` y esa carpeta no existe, el job pasa a PD y desaparece.
 
 ## Si se cayeron los jobs
 

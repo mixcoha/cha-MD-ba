@@ -25,7 +25,11 @@ else
 fi
 
 echo
-for f in logs/*.err logs/*.out; do
+echo
+echo "=== *.out / *.err en el directorio de envío ==="
+ls -lt -- *.out *.err 2>/dev/null | head -20 || echo "(ninguno)"
+
+for f in logs/*.err logs/*.out ./*.err ./*.out; do
   [[ -e "$f" ]] || continue
   echo "---------- $f (últimas 80 líneas) ----------"
   tail -80 "$f"

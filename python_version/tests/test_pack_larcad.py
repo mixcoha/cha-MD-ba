@@ -49,6 +49,7 @@ def test_larcad_scripts_parse_and_nacl_is_0_15():
     for name in (
         "run_model.sh",
         "submit_all.sh",
+        "submit_one.sh",
         "submit_model.slurm",
         "diagnose_jobs.sh",
     ):
@@ -70,3 +71,14 @@ def test_larcad_scripts_parse_and_nacl_is_0_15():
     md = (root / "mdp" / "md.mdp").read_text()
     assert "Parrinello-Rahman" in md
     assert "0.15 M" in md
+
+    slurm = (root / "submit_model.slurm").read_text()
+    assert "--output=%x_%j.out" in slurm
+    assert "--output=logs/" not in slurm
+    for name in ("submit_all.sh", "submit_one.sh"):
+        active = [
+            line
+            for line in (root / name).read_text().splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        assert not any("--export=ALL" in line for line in active)
