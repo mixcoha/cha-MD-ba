@@ -44,8 +44,7 @@ Para el nodo de LARCAD, copia `cluster/larcad/` (ver `cluster/larcad/README.md`)
 
 ```bash
 python3 scripts/pack_larcad_6m03.py
-export LARCAD_HOST=usuario@HOST
-bash scripts/upload_larcad.sh
+bash scripts/upload_larcad.sh   # ssh -p 212 mixcoha@148.222.27.130
 ```
 
 Por defecto escribe en `work/` y `work/data/`.

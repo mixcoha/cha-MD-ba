@@ -20,16 +20,16 @@ No sube trayectorias a GitHub. En el nodo las corridas quedan en `runs/`.
 
 ```bash
 git checkout cursor/6m03-mutantes-h41a-c145a-3810
-python3 scripts/pack_larcad_6m03.py          # (re)genera PDB y tar.gz
-export LARCAD_HOST=usuario@HOST_DEL_NODO
-export LARCAD_REMOTE_DIR=~/cha-md-ba-6m03
+python3 scripts/pack_larcad_6m03.py
 bash scripts/upload_larcad.sh
 ```
+
+El login del nodo es `ssh -p 212 mixcoha@148.222.27.130`. El script ya usa ese host y puerto.
 
 Si no usas el script:
 
 ```bash
-rsync -avz cluster/larcad/ usuario@HOST:~/cha-md-ba-6m03/
+rsync -avz -e "ssh -p 212" cluster/larcad/ mixcoha@148.222.27.130:~/cha-md-ba-6m03/
 ```
 
 El tar.gz (sin `runs/`) queda en `work/larcad_bundle/cha-md-ba-6m03-larcad.tar.gz`.
@@ -37,7 +37,8 @@ El tar.gz (sin `runs/`) queda en `work/larcad_bundle/cha-md-ba-6m03-larcad.tar.g
 ## En el nodo
 
 ```bash
-cd ~/cha-md-ba-6m03
+  ssh -p 212 mixcoha@148.222.27.130
+  cd ~/cha-md-ba-6m03
 cp env.sh.example env.sh
 # Edita LARCAD_PARTITION y LARCAD_GMX_MODULE según:
 sinfo
