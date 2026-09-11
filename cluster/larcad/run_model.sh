@@ -30,13 +30,18 @@ NT="${SLURM_CPUS_PER_TASK:-${OMP_NUM_THREADS:-8}}"
 export OMP_NUM_THREADS="$NT"
 export GMX_MAXBACKUP="${GMX_MAXBACKUP:-0}"
 
+GPU_FLAGS=()
+if [[ "${LARCAD_USE_GPU:-0}" == "1" ]]; then
+  GPU_FLAGS=(-nb gpu -pme gpu -bonded gpu)
+fi
+
 mdrun() {
   local deffnm="$1"
   shift
   if [[ -n "${SLURM_JOB_ID:-}" ]] && command -v srun >/dev/null 2>&1; then
-    srun "$GMX" mdrun -deffnm "$deffnm" -ntomp "$NT" "$@"
+    srun -n 1 "$GMX" mdrun -deffnm "$deffnm" -ntomp "$NT" "${GPU_FLAGS[@]}" "$@"
   else
-    "$GMX" mdrun -deffnm "$deffnm" -ntomp "$NT" "$@"
+    "$GMX" mdrun -deffnm "$deffnm" -ntomp "$NT" "${GPU_FLAGS[@]}" "$@"
   fi
 }
 

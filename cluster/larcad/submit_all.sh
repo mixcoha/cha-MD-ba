@@ -18,6 +18,7 @@ EXTRA=()
 [[ -n "${LARCAD_TIME:-}" ]] && EXTRA+=(--time="$LARCAD_TIME")
 [[ -n "${LARCAD_CPUS:-}" ]] && EXTRA+=(--cpus-per-task="$LARCAD_CPUS")
 [[ -n "${LARCAD_NODES:-}" ]] && EXTRA+=(--nodes="$LARCAD_NODES")
+[[ -n "${LARCAD_GRES:-}" ]] && EXTRA+=(--gres="$LARCAD_GRES")
 
 MODELS=(6M03_H41A 6M03_C145A 6M03_H41A_C145A)
 if [[ "${1:-}" == "wt" || "${1:-}" == "all-plus-wt" ]]; then

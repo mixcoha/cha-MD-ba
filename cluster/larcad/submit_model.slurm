@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=6M03
+#SBATCH --partition=larcad
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
