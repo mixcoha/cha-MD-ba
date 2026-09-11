@@ -40,3 +40,33 @@ def test_pack_larcad_writes_three_mutants(tmp_path):
     tarball = tmp_path / "bundle.tar.gz"
     pack.make_tarball(cluster, tarball)
     assert tarball.exists() and tarball.stat().st_size > 0
+
+
+def test_larcad_scripts_parse_and_nacl_is_0_15():
+    import subprocess
+
+    root = Path(__file__).resolve().parents[2] / "cluster" / "larcad"
+    for name in (
+        "run_model.sh",
+        "submit_all.sh",
+        "submit_model.slurm",
+        "diagnose_jobs.sh",
+    ):
+        subprocess.check_call(["bash", "-n", str(root / name)])
+
+    run_model = (root / "run_model.sh").read_text()
+    assert "-conc 0.15" in run_model
+    assert "GPU_FLAGS=(-nb gpu -pme gpu)" in run_model
+    assert "run_mdrun em" in run_model
+
+    npt = (root / "mdp" / "npt.mdp").read_text()
+    npt_active = [
+        line for line in npt.splitlines() if line.strip() and not line.lstrip().startswith(";")
+    ]
+    assert "-DPOSRES" in npt
+    assert any("C-rescale" in line for line in npt_active)
+    assert not any("Parrinello-Rahman" in line for line in npt_active)
+
+    md = (root / "mdp" / "md.mdp").read_text()
+    assert "Parrinello-Rahman" in md
+    assert "0.15 M" in md

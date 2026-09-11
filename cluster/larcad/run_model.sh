@@ -8,9 +8,9 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 RUNS="${RUNS_DIR:-$ROOT/runs}"
 MDP="$ROOT/mdp"
 PDB="$ROOT/models/${MODEL}/protein.pdb"
-GMX="${GMX:-}"
+MAXWARN="${LARCAD_MAXWARN:-3}"
 
-if [[ -z "$GMX" ]]; then
+if [[ -z "${GMX:-}" ]]; then
   if command -v gmx >/dev/null 2>&1; then
     GMX=gmx
   elif command -v gmx_mpi >/dev/null 2>&1; then
@@ -29,19 +29,66 @@ fi
 NT="${SLURM_CPUS_PER_TASK:-${OMP_NUM_THREADS:-8}}"
 export OMP_NUM_THREADS="$NT"
 export GMX_MAXBACKUP="${GMX_MAXBACKUP:-0}"
+unset DISPLAY || true
 
+# GPU solo en dinámica (NVT/NPT/MD). EM con steep + -bonded gpu suele ser fatal.
+# Tampoco usamos -bonded gpu: choca con POSRES en varios builds de GROMACS 2026.
 GPU_FLAGS=()
 if [[ "${LARCAD_USE_GPU:-0}" == "1" ]]; then
-  GPU_FLAGS=(-nb gpu -pme gpu -bonded gpu)
+  if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+    GPU_FLAGS=(-nb gpu -pme gpu)
+  else
+    echo "WARN: LARCAD_USE_GPU=1 pero no hay GPU visible; se usa CPU"
+  fi
 fi
 
-mdrun() {
+gmx_cmd() {
+  echo "+ $GMX $*"
+  "$GMX" "$@"
+}
+
+run_mdrun() {
   local deffnm="$1"
   shift
-  if [[ -n "${SLURM_JOB_ID:-}" ]] && command -v srun >/dev/null 2>&1; then
-    srun -n 1 "$GMX" mdrun -deffnm "$deffnm" -ntomp "$NT" "${GPU_FLAGS[@]}" "$@"
+  local flags=()
+  if [[ "$deffnm" != "em" && ${#GPU_FLAGS[@]} -gt 0 ]]; then
+    flags=("${GPU_FLAGS[@]}")
+  fi
+
+  local launcher=()
+  case "${LARCAD_MPI_LAUNCH:-auto}" in
+    srun) launcher=(srun --ntasks=1 --cpu-bind=none) ;;
+    mpirun) launcher=(mpirun -np 1) ;;
+    none|direct|auto) launcher=() ;;
+    *)
+      echo "LARCAD_MPI_LAUNCH inválido: ${LARCAD_MPI_LAUNCH}" >&2
+      exit 1
+      ;;
+  esac
+
+  echo "+ ${launcher[*]:-} $GMX mdrun -deffnm $deffnm -ntomp $NT ${flags[*]:-} $*"
+  # gmx_mpi en un solo nodo suele arrancar como proceso único; srun/mpirun
+  # se activan con LARCAD_MPI_LAUNCH si el binario exige launcher MPI.
+  "${launcher[@]}" "$GMX" mdrun -deffnm "$deffnm" -ntomp "$NT" "${flags[@]}" "$@"
+}
+
+copy_topol() {
+  local dest="$1"
+  local fc="${2:-}"
+  cp "$PREP/topol.top" "$dest/topol.top"
+  local itp name
+  shopt -s nullglob
+  for itp in "$PREP"/*.itp; do
+    name="$(basename "$itp")"
+    if [[ "$name" == posre.itp ]]; then
+      continue
+    fi
+    cp "$itp" "$dest/$name"
+  done
+  if [[ -n "$fc" ]]; then
+    sed "s/1000/${fc}/g" "$PREP/posre.itp" > "$dest/posre.itp"
   else
-    "$GMX" mdrun -deffnm "$deffnm" -ntomp "$NT" "${GPU_FLAGS[@]}" "$@"
+    cp "$PREP/posre.itp" "$dest/posre.itp"
   fi
 }
 
@@ -53,19 +100,19 @@ NPT="$BASE/4_npt"
 PROD="$BASE/5_production"
 mkdir -p "$PREP" "$EM" "$NVT/posre_constante" "$NPT" "$PROD"
 
-echo "==> $MODEL  GMX=$GMX  hilos=$NT  $BASE"
+echo "==> $MODEL  GMX=$GMX ($(command -v "$GMX"))  hilos=$NT  gpu=${GPU_FLAGS[*]:-cpu}  $BASE"
 
 if [[ ! -f "$PREP/${MODEL}_ions.gro" || ! -f "$PREP/topol.top" ]]; then
   echo "--> preparación (pdb2gmx, caja, solvente, NaCl 0.15 M)"
   cp "$PDB" "$PREP/${MODEL}.pdb"
   (
     cd "$PREP"
-    "$GMX" pdb2gmx -f "${MODEL}.pdb" -o "${MODEL}.gro" -p topol.top -i posre.itp \
+    gmx_cmd pdb2gmx -f "${MODEL}.pdb" -o "${MODEL}.gro" -p topol.top -i posre.itp \
       -ff amber99sb-ildn -water tip3p -ignh
-    "$GMX" editconf -f "${MODEL}.gro" -o "${MODEL}_box.gro" -c -bt dodecahedron -d 1.2
-    "$GMX" solvate -cp "${MODEL}_box.gro" -cs spc216.gro -o "${MODEL}_solv.gro" -p topol.top
-    "$GMX" grompp -f "$MDP/em.mdp" -c "${MODEL}_solv.gro" -p topol.top -o ions.tpr -maxwarn 1
-    printf 'SOL\n' | "$GMX" genion -s ions.tpr -o "${MODEL}_ions.gro" -p topol.top \
+    gmx_cmd editconf -f "${MODEL}.gro" -o "${MODEL}_box.gro" -c -bt dodecahedron -d 1.2
+    gmx_cmd solvate -cp "${MODEL}_box.gro" -cs spc216.gro -o "${MODEL}_solv.gro" -p topol.top
+    gmx_cmd grompp -f "$MDP/em.mdp" -c "${MODEL}_solv.gro" -p topol.top -o ions.tpr -maxwarn "$MAXWARN"
+    printf 'SOL\n' | gmx_cmd genion -s ions.tpr -o "${MODEL}_ions.gro" -p topol.top \
       -pname NA -nname CL -neutral -conc 0.15
   )
 else
@@ -73,12 +120,12 @@ else
 fi
 
 if [[ ! -f "$EM/minimized.gro" ]]; then
-  echo "--> minimización"
+  echo "--> minimización (CPU; steep no lleva flags GPU)"
   (
     cd "$EM"
-    "$GMX" grompp -f "$MDP/em.mdp" -c "$PREP/${MODEL}_ions.gro" -p "$PREP/topol.top" \
-      -o em.tpr -maxwarn 1
-    mdrun em
+    gmx_cmd grompp -f "$MDP/em.mdp" -c "$PREP/${MODEL}_ions.gro" -p "$PREP/topol.top" \
+      -o em.tpr -maxwarn "$MAXWARN"
+    run_mdrun em
     cp em.gro minimized.gro
   )
 else
@@ -103,24 +150,19 @@ for FC in 1000 800 600 400 200; do
   echo "--> NVT POSRES $FC (310 K, 100 ps)"
   (
     cd "$FC_DIR"
-    cp "$PREP/topol.top" .
-    shopt -s nullglob
-    for itp in "$PREP"/*.itp; do
-      name="$(basename "$itp")"
-      if [[ "$name" == posre.itp ]]; then
-        continue
-      fi
-      cp "$itp" "$name"
-    done
-    sed "s/1000/${FC}/g" "$PREP/posre.itp" > posre.itp
+    copy_topol "$FC_DIR" "$FC"
     if [[ "$FIRST" -eq 1 ]]; then
-      "$GMX" grompp -f "$MDP/nvt.mdp" -c "$PREV_GRO" -r "$PREV_GRO" -p topol.top \
-        -o nvt.tpr -maxwarn 1
+      gmx_cmd grompp -f "$MDP/nvt.mdp" -c "$PREV_GRO" -r "$PREV_GRO" -p topol.top \
+        -o nvt.tpr -maxwarn "$MAXWARN"
     else
-      "$GMX" grompp -f "$MDP/nvt_cont.mdp" -c "$PREV_GRO" -r "$PREV_GRO" -t "$PREV_CPT" \
-        -p topol.top -o nvt.tpr -maxwarn 1
+      local_t=()
+      if [[ -n "$PREV_CPT" && -f "$PREV_CPT" ]]; then
+        local_t=(-t "$PREV_CPT")
+      fi
+      gmx_cmd grompp -f "$MDP/nvt_cont.mdp" -c "$PREV_GRO" -r "$PREV_GRO" "${local_t[@]}" \
+        -p topol.top -o nvt.tpr -maxwarn "$MAXWARN"
     fi
-    mdrun nvt
+    run_mdrun nvt
   )
   PREV_GRO="$FC_DIR/nvt.gro"
   PREV_CPT="$FC_DIR/nvt.cpt"
@@ -128,12 +170,17 @@ for FC in 1000 800 600 400 200; do
 done
 
 if [[ ! -f "$NPT/npt.gro" ]]; then
-  echo "--> NPT 310 K, 1 bar, 100 ps"
+  echo "--> NPT 310 K, 1 bar, 100 ps (C-rescale + POSRES 200)"
   (
     cd "$NPT"
-    "$GMX" grompp -f "$MDP/npt.mdp" -c "$PREV_GRO" -t "$PREV_CPT" -p "$PREP/topol.top" \
-      -o npt.tpr -maxwarn 1
-    mdrun npt
+    copy_topol "$NPT" 200
+    npt_t=()
+    if [[ -n "$PREV_CPT" && -f "$PREV_CPT" ]]; then
+      npt_t=(-t "$PREV_CPT")
+    fi
+    gmx_cmd grompp -f "$MDP/npt.mdp" -c "$PREV_GRO" -r "$PREV_GRO" "${npt_t[@]}" \
+      -p topol.top -o npt.tpr -maxwarn "$MAXWARN"
+    run_mdrun npt
   )
 else
   echo "--> NPT ya existe, se reutiliza"
@@ -143,9 +190,9 @@ if [[ ! -f "$PROD/md.gro" ]]; then
   echo "--> producción 10 ns"
   (
     cd "$PROD"
-    "$GMX" grompp -f "$MDP/md.mdp" -c "$NPT/npt.gro" -t "$NPT/npt.cpt" -p "$PREP/topol.top" \
-      -o md.tpr -maxwarn 1
-    mdrun md
+    gmx_cmd grompp -f "$MDP/md.mdp" -c "$NPT/npt.gro" -t "$NPT/npt.cpt" -p "$PREP/topol.top" \
+      -o md.tpr -maxwarn "$MAXWARN"
+    run_mdrun md
   )
 else
   echo "--> producción ya existe"

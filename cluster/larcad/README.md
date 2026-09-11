@@ -43,11 +43,40 @@ cp env.sh.example env.sh
 # Colas: larcad (n1–n4 CPU) y gpu_rtxA5000 (gpu1, RTX A5000).
 # Módulos: gromacs-mpi-2026.2  /  gromacs-mpi-cuda-2026.2
 cp env.sh.example env.sh
-bash submit_all.sh                 # los tres mutantes (GPU por defecto)
+# Primero un solo modelo (hay 1 GPU; así ves el error si falla):
+bash submit_all.sh 6M03_H41A
 squeue -u "$USER"
 ```
 
-Un solo modelo: `MODEL=6M03_H41A sbatch --export=ALL,MODEL=6M03_H41A submit_model.slurm`
+Los tres mutantes: `bash submit_all.sh`. Con una GPU, C145A y el doble esperan.
+
+Un solo modelo a mano: `MODEL=6M03_H41A sbatch --export=ALL,MODEL=6M03_H41A submit_model.slurm`
+
+## Si se cayeron los jobs
+
+No es la concentración de sal (sigue en **0.15 M**). Las causas habituales de que se mueran los tres a la vez:
+
+1. `module load` de la pila CUDA falla y el job termina en segundos.
+2. `gmx_mpi mdrun` con `-bonded gpu` o GPU en la minimización (steep).
+3. Barostato **Parrinello–Rahman** en el NPT de 100 ps, antes de equilibrar la caja → LINCS y el job muere. El NPT ahora usa **C-rescale**; la producción de 10 ns sigue con PR.
+
+En el nodo:
+
+```bash
+cd ~/cha-md-ba-6m03
+bash diagnose_jobs.sh
+# o a mano:
+sacct -u "$USER" --starttime=now-2days --format=JobID,JobName,State,ExitCode,Elapsed
+tail -100 logs/*.err logs/*.out
+```
+
+Vuelve a subir el paquete (`bash scripts/upload_larcad.sh` desde la laptop; no pisa `env.sh` ni `runs/`). Si la preparación quedó a medias o a 0.5 M:
+
+```bash
+# solo si hay que regenerar iones / etapas rotas
+rm -rf runs/6M03_H41A runs/6M03_C145A runs/6M03_H41A_C145A
+bash submit_all.sh 6M03_H41A
+```
 
 Si el scheduler no es SLURM, ejecuta a mano en el nodo asignado:
 
