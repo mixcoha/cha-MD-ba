@@ -21,9 +21,15 @@ if [[ -f env.sh ]]; then
 fi
 
 module purge 2>/dev/null || true
-if [[ -n "${LARCAD_GMX_MODULE:-}" ]]; then
+if [[ -n "${LARCAD_MODULES:-}" ]]; then
+  # gcc + MPI + GROMACS, en ese orden (module avail de LARCAD).
+  for mod in ${LARCAD_MODULES}; do
+    module load "$mod"
+  done
+elif [[ -n "${LARCAD_GMX_MODULE:-}" ]]; then
   module load ${LARCAD_GMX_MODULE}
 fi
+module list || true
 
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 MODEL="${MODEL:?export MODEL=6M03_H41A (o usa submit_all.sh)}"
