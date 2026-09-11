@@ -51,7 +51,7 @@ mkdir -p "$PREP" "$EM" "$NVT/posre_constante" "$NPT" "$PROD"
 echo "==> $MODEL  GMX=$GMX  hilos=$NT  $BASE"
 
 if [[ ! -f "$PREP/${MODEL}_ions.gro" || ! -f "$PREP/topol.top" ]]; then
-  echo "--> preparación (pdb2gmx, caja, solvente, NaCl 0.5 M)"
+  echo "--> preparación (pdb2gmx, caja, solvente, NaCl 0.15 M)"
   cp "$PDB" "$PREP/${MODEL}.pdb"
   (
     cd "$PREP"
@@ -61,7 +61,7 @@ if [[ ! -f "$PREP/${MODEL}_ions.gro" || ! -f "$PREP/topol.top" ]]; then
     "$GMX" solvate -cp "${MODEL}_box.gro" -cs spc216.gro -o "${MODEL}_solv.gro" -p topol.top
     "$GMX" grompp -f "$MDP/em.mdp" -c "${MODEL}_solv.gro" -p topol.top -o ions.tpr -maxwarn 1
     printf 'SOL\n' | "$GMX" genion -s ions.tpr -o "${MODEL}_ions.gro" -p topol.top \
-      -pname NA -nname CL -neutral -conc 0.5
+      -pname NA -nname CL -neutral -conc 0.15
   )
 else
   echo "--> preparación ya existe, se reutiliza"

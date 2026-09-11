@@ -70,10 +70,10 @@ class Benchmark6M03Config:
     run_id: str = "6M03"
     mutations: tuple = ()
     description: str = (
-        "SARS-CoV-2 Mpro apo (6M03) disuelta en agua TIP3P con NaCl 0.5 M a 310 K"
+        "SARS-CoV-2 Mpro apo (6M03) disuelta en agua TIP3P con NaCl 0.15 M a 310 K"
     )
     temperature: float = 310.0
-    ion_concentration: float = 0.5
+    ion_concentration: float = 0.15
     pressure: float = 1.0
     forcefield: str = "amber99sb-ildn"
     water_model: str = "tip3p"
@@ -132,7 +132,7 @@ def config_for_model(model: str, base: Optional[Benchmark6M03Config] = None) -> 
     title = spec["title"]
     if config.mutations:
         config.description = (
-            f"{title}. SARS-CoV-2 Mpro (6M03) en agua TIP3P con NaCl 0.5 M a 310 K"
+            f"{title}. SARS-CoV-2 Mpro (6M03) en agua TIP3P con NaCl 0.15 M a 310 K"
         )
     return config
 
@@ -310,7 +310,7 @@ def run_benchmark(
     gpu_ids: Optional[str] = None,
     gmx: Optional[str] = None,
 ) -> Dict[str, object]:
-    """Ejecuta el benchmark 6M03: descarga, limpia, solvata con NaCl 0.5 M y 310 K."""
+    """Ejecuta el benchmark 6M03: descarga, limpia, solvata con NaCl 0.15 M y 310 K."""
     config = config or Benchmark6M03Config()
     stages = stages or ["download", "clean", "prepare", "mdps", "minimize"]
     gmx_cmd = gmx or find_gmx()
@@ -526,7 +526,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Benchmark de 6M03 (Mpro apo de SARS-CoV-2) en agua TIP3P "
-            "con NaCl 0.5 M a 310 K. Modelos: silvestre, H41A, C145A o ambas."
+            "con NaCl 0.15 M a 310 K. Modelos: silvestre, H41A, C145A o ambas."
         )
     )
     parser.add_argument(
@@ -581,7 +581,7 @@ def _apply_cli_overrides(config: Benchmark6M03Config, args) -> Benchmark6M03Conf
         config.run_id = run_id_from_mutations(config.pdb_id, config.mutations)
         labels = ", ".join(config.mutation_labels)
         config.description = (
-            f"{labels}. SARS-CoV-2 Mpro (6M03) en agua TIP3P con NaCl 0.5 M a 310 K"
+            f"{labels}. SARS-CoV-2 Mpro (6M03) en agua TIP3P con NaCl 0.15 M a 310 K"
         )
     return config
 

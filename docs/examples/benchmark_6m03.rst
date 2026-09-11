@@ -1,8 +1,8 @@
-Benchmark 6M03 en agua con NaCl 0.5 M a 310 K
+Benchmark 6M03 en agua con NaCl 0.15 M a 310 K
 =============================================
 
 Este ejemplo prepara un sistema de referencia de la proteasa principal de
-SARS-CoV-2 en forma apo (PDB ``6M03``), disuelta en agua TIP3P con **NaCl 0.5 M**
+SARS-CoV-2 en forma apo (PDB ``6M03``), disuelta en agua TIP3P con **NaCl 0.15 M**
 a **310 K**.
 
 Las corridas se escriben en ``work/`` (gitignored) y no se publican en GitHub.
@@ -14,7 +14,7 @@ Condiciones
 * Campo de fuerzas: AMBER99SB-ILDN
 * Modelo de agua: TIP3P
 * Caja dodecaédrica con 1.2 nm de margen
-* Neutralización + NaCl 0.5 M (``gmx genion -neutral -conc 0.5``)
+* Neutralización + NaCl 0.15 M (``gmx genion -neutral -conc 0.15``)
 * Temperatura: 310 K
 * Presión: 1 bar
 
@@ -37,7 +37,7 @@ Desde Python:
 
    config = Benchmark6M03Config(
        temperature=310.0,
-       ion_concentration=0.5,
+       ion_concentration=0.15,
    )
    result = run_benchmark(config=config, stages=["download", "clean", "prepare", "mdps"])
 

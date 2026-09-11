@@ -115,7 +115,7 @@ Análisis
    # Realizar análisis de clusters
    clusters = analyzer.cluster_analysis()
 
-Benchmark 6M03 (NaCl 0.5 M, 310 K)
+Benchmark 6M03 (NaCl 0.15 M, 310 K)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python

@@ -1,8 +1,8 @@
-# Benchmark 6M03 — agua + NaCl 0.5 M a 310 K
+# Benchmark 6M03 — agua + NaCl 0.15 M a 310 K
 
 Protocolo de referencia de CHA-MD-BA para la proteasa principal de SARS-CoV-2
 en forma apo ([PDB 6M03](https://www.rcsb.org/structure/6M03)), disuelta en
-agua TIP3P con **NaCl 0.5 M** a **310 K** y 1 bar.
+agua TIP3P con **NaCl 0.15 M** a **310 K** y 1 bar.
 
 Las **corridas** (coordenadas, trayectorias, logs) viven en `work/` en tu
 clon local y **no se suben a GitHub**. Aquí solo está el protocolo.
@@ -27,7 +27,7 @@ N, CA, C, O y CB; `pdb2gmx -ignh` completa los hidrógenos):
 | Campo de fuerzas | AMBER99SB-ILDN |
 | Agua | TIP3P |
 | Caja | dodecaedro, 1.2 nm al borde |
-| Iones | NaCl 0.5 M + neutralización |
+| Iones | NaCl 0.15 M + neutralización |
 | Temperatura | 310 K (V-rescale, grupos Protein / Non-Protein) |
 | Presión | 1 bar (Parrinello–Rahman, NPT y producción) |
 | Paso de tiempo | 2 fs |
@@ -62,7 +62,7 @@ python scripts/run_benchmark_6m03.py --stages mdps
 3. Mutación a ALA si el modelo no es silvestre (H41A y/o C145A).
 4. `pdb2gmx` (AMBER99SB-ILDN, TIP3P, `-ignh`).
 5. Caja dodecaédrica centrada (`-d 1.2`).
-6. Solvatación y `genion -neutral -conc 0.5`.
+6. Solvatación y `genion -neutral -conc 0.15`.
 7. Minimización (steepest descent, `emtol = 1000 kJ mol⁻¹ nm⁻¹`).
 8. NVT a 310 K con POSRES decrecientes (1000 → 200 kJ mol⁻¹ nm⁻²).
 9. NPT a 310 K y 1 bar.
@@ -79,5 +79,5 @@ Con GROMACS 2023.3, AMBER99SB-ILDN y TIP3P, el protocolo produce:
 
 * 306 residuos (cadena A), 4682 átomos de proteína con hidrógenos
 * ~21 000 moléculas de agua
-* Na⁺ y Cl⁻ con carga neta 0 a ~0.5 M en una caja de ~700 nm³
+* Na⁺ y Cl⁻ con carga neta 0 a 0.15 M en una caja de ~700 nm³
 * `grompp` NVT/NPT con `ref_t = 310 K` y POSRES (`posre.itp` junto a `topol.top`)

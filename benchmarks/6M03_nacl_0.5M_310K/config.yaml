@@ -1,10 +1,10 @@
 pdb_id: "6M03"
 description: >-
-  SARS-CoV-2 Mpro apo (PDB 6M03) disuelta en agua TIP3P con NaCl 0.5 M a 310 K.
+  SARS-CoV-2 Mpro apo (PDB 6M03) disuelta en agua TIP3P con NaCl 0.15 M a 310 K.
   Condiciones de referencia ("normales") para el benchmark de CHA-MD-BA.
 
 temperature_K: 310
-ion_concentration_M: 0.5
+ion_concentration_M: 0.15
 ion_positive: NA
 ion_negative: CL
 pressure_bar: 1.0
@@ -26,5 +26,5 @@ notes:
   - La estructura cristalina es la forma apo (cadena A, 306 residuos).
   - Se eliminan aguas cristalográficas; el solvente se reconstruye con TIP3P.
   - HIS se trata como HIE para evitar la protonación interactiva de pdb2gmx.
-  - 0.5 M NaCl se añade con genion -neutral -conc 0.5.
+  - 0.15 M NaCl se añade con genion -neutral -conc 0.15.
   - 310 K corresponde a la temperatura fisiológica usada en los despliegues térmicos del pipeline.

@@ -37,8 +37,8 @@ El tar.gz (sin `runs/`) queda en `work/larcad_bundle/cha-md-ba-6m03-larcad.tar.g
 ## En el nodo
 
 ```bash
-  ssh -p 212 mixcoha@148.222.27.130
-  cd ~/cha-md-ba-6m03
+ssh -p 212 mixcoha@148.222.27.130
+cd ~/cha-md-ba-6m03
 cp env.sh.example env.sh
 # Edita LARCAD_PARTITION y LARCAD_GMX_MODULE según:
 sinfo
@@ -62,6 +62,6 @@ export OMP_NUM_THREADS=8
 ## Protocolo
 
 Igual que el benchmark local: AMBER99SB-ILDN, TIP3P, dodecaedro 1.2 nm,
-NaCl 0.5 M, 310 K, POSRES 1000→200, NPT 100 ps, producción 10 ns.
+NaCl 0.15 M, 310 K, POSRES 1000→200, NPT 100 ps, producción 10 ns.
 Los resultados **no** se versionan; cópialos de vuelta con `rsync` cuando
 terminen (`runs/` y `logs/`).

@@ -1,5 +1,5 @@
 # Modelos de la díada catalítica de Mpro (6M03, cadena A).
-# Misma caja, NaCl 0.5 M y 310 K que el silvestre.
+# Misma caja, NaCl 0.15 M y 310 K que el silvestre.
 # Numeración PDB: His41 y Cys145.
 
 wt:

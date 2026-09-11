@@ -68,7 +68,7 @@ cha-md-ba npt
 cha-md-ba production
 ```
 
-Benchmark de 6M03 (agua, NaCl 0.5 M, 310 K). La salida va a `work/`
+Benchmark de 6M03 (agua, NaCl 0.15 M, 310 K). La salida va a `work/`
 (carpeta local, no se sube a GitHub):
 
 ```bash

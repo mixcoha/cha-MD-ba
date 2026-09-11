@@ -1,4 +1,4 @@
-"""Pruebas del benchmark 6M03 y de las condiciones NaCl 0.5 M / 310 K."""
+"""Pruebas del benchmark 6M03 y de las condiciones NaCl 0.15 M / 310 K."""
 
 from unittest.mock import Mock
 
@@ -35,7 +35,7 @@ def test_benchmark_default_conditions():
     config = Benchmark6M03Config()
     assert config.pdb_id == "6M03"
     assert config.temperature == 310.0
-    assert config.ion_concentration == 0.5
+    assert config.ion_concentration == 0.15
     assert config.pressure == 1.0
     assert config.forcefield == "amber99sb-ildn"
     assert config.water_model == "tip3p"
@@ -79,7 +79,7 @@ def test_genion_includes_salt_concentration(tmp_path, monkeypatch):
 
     preparator = MDSystemPreparator(
         pdb_path=str(pdb),
-        ion_concentration=0.5,
+        ion_concentration=0.15,
         gmx="gmx_mpi",
     )
     preparator.prepare_system(output_dir=str(tmp_path), minimize=False, ions=True)
@@ -88,7 +88,7 @@ def test_genion_includes_salt_concentration(tmp_path, monkeypatch):
     assert genion_cmds, "No se invocó genion"
     genion = genion_cmds[0]
     assert "-conc" in genion
-    assert "0.5" in genion
+    assert "0.15" in genion
     assert "-neutral" in genion
     assert genion[0] == "gmx_mpi"
 
@@ -122,7 +122,7 @@ def test_write_protocol_mdps(tmp_path):
     paths = write_protocol_mdps(tmp_path, Benchmark6M03Config())
     md_text = paths["md"].read_text()
     assert "310" in md_text
-    assert "0.5 M NaCl" in md_text
+    assert "0.15 M NaCl" in md_text
     assert "nsteps              = 5000000" in md_text
 
 
