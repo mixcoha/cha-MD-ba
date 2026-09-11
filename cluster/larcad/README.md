@@ -40,11 +40,10 @@ El tar.gz (sin `runs/`) queda en `work/larcad_bundle/cha-md-ba-6m03-larcad.tar.g
 ssh -p 212 mixcoha@148.222.27.130
 cd ~/cha-md-ba-6m03
 cp env.sh.example env.sh
-# Edita LARCAD_PARTITION y LARCAD_GMX_MODULE según:
-sinfo
-module avail gromacs
-
-bash submit_all.sh                 # los tres mutantes
+# Colas: larcad (n1–n4 CPU) y gpu_rtxA5000 (gpu1, RTX A5000).
+# Módulos: gromacs-mpi-2026.2  /  gromacs-mpi-cuda-2026.2
+cp env.sh.example env.sh
+bash submit_all.sh                 # los tres mutantes (GPU por defecto)
 squeue -u "$USER"
 ```
 
