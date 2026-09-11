@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lanza el benchmark de 6M03 en agua con NaCl 0.5 M a 310 K."""
+"""Lanza el benchmark de 6M03 (silvestre o mutantes H41A / C145A) a 310 K."""
 
 from __future__ import annotations
 

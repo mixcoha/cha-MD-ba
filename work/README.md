@@ -8,8 +8,11 @@ aquí se sube a GitHub.
 
 | Ruta | Contenido |
 | --- | --- |
-| `work/data/` | PDB descargados (p. ej. `6M03.pdb`) |
-| `work/6M03/` | Preparación, minimización, NVT, NPT, producción |
+| `work/data/` | PDB descargados y mutados (p. ej. `6M03.pdb`, `6M03_H41A.pdb`) |
+| `work/6M03/` | Silvestre: preparación, minimización, NVT, NPT, producción |
+| `work/6M03_H41A/` | Modelo 1: H41A |
+| `work/6M03_C145A/` | Modelo 2: C145A |
+| `work/6M03_H41A_C145A/` | Modelo 3: H41A + C145A |
 
 No copies `.gro`, `.trr`, `.xtc`, `.log` ni reportes de corrida a
 `benchmarks/` ni a ningún otro directorio versionado.
@@ -19,18 +22,21 @@ No copies `.gro`, `.trr`, `.xtc`, `.log` ni reportes de corrida a
 ```bash
 git clone https://github.com/mixcoha/cha-MD-ba.git
 cd cha-MD-ba
-git fetch origin cursor/6m03-benchmark-nacl-310k-c08b
-git checkout cursor/6m03-benchmark-nacl-310k-c08b
+git fetch origin cursor/6m03-mutantes-h41a-c145a-3810
+git checkout cursor/6m03-mutantes-h41a-c145a-3810
 ```
 
 Necesitas GROMACS (p. ej. 2023.3) y, si hay NVIDIA, el driver. Luego:
 
 ```bash
 python scripts/run_benchmark_6m03.py --resume
+python scripts/run_benchmark_6m03.py --model 1 --resume
+python scripts/run_benchmark_6m03.py --model 2 --resume
+python scripts/run_benchmark_6m03.py --model 3 --resume
 ```
 
-`--resume` mira `work/6M03/` y continúa desde lo que falte (preparación,
-minimización, NVT POSRES 1000→200, NPT). Si no hay nada, empieza de cero.
+`--resume` mira la carpeta del modelo (`work/6M03/` o `work/6M03_H41A/`, etc.)
+y continúa desde lo que falte.
 La GPU 0 se usa sola si `nvidia-smi` ve una tarjeta; si no, corre en CPU.
 Para forzar CPU: `--gpu-ids none`. Para una GPU concreta: `--gpu-ids 0`.
 

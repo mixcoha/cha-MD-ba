@@ -24,6 +24,10 @@ Ejecución
 .. code-block:: bash
 
    python scripts/run_benchmark_6m03.py --resume
+   python scripts/run_benchmark_6m03.py --model 1 --resume
+   python scripts/run_benchmark_6m03.py --model 2 --resume
+   python scripts/run_benchmark_6m03.py --model 3 --resume
+   python scripts/run_benchmark_6m03.py --model all --resume
 
 Desde Python:
 

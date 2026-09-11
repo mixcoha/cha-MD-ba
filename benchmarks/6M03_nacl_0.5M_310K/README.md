@@ -7,6 +7,18 @@ agua TIP3P con **NaCl 0.5 M** a **310 K** y 1 bar.
 Las **corridas** (coordenadas, trayectorias, logs) viven en `work/` en tu
 clon local y **no se suben a GitHub**. Aquí solo está el protocolo.
 
+## Modelos de la díada catalítica
+
+His41 y Cys145 son la díada de Mpro. Se truncan a alanina (se conservan
+N, CA, C, O y CB; `pdb2gmx -ignh` completa los hidrógenos):
+
+| Modelo | Mutación | Carpeta local |
+| --- | --- | --- |
+| silvestre | ninguna | `work/6M03/` |
+| 1 | H41A | `work/6M03_H41A/` |
+| 2 | C145A | `work/6M03_C145A/` |
+| 3 | H41A + C145A | `work/6M03_H41A_C145A/` |
+
 ## Condiciones
 
 | Parámetro | Valor |
@@ -26,9 +38,13 @@ Desde la raíz del repositorio (GROMACS en PATH; GPU opcional):
 
 ```bash
 python scripts/run_benchmark_6m03.py --resume
+python scripts/run_benchmark_6m03.py --model 1 --resume    # H41A
+python scripts/run_benchmark_6m03.py --model 2 --resume    # C145A
+python scripts/run_benchmark_6m03.py --model 3 --resume    # H41A + C145A
+python scripts/run_benchmark_6m03.py --model all --resume  # los tres mutantes
 ```
 
-Eso escribe en `work/6M03/` y continúa desde la etapa que falte.
+El silvestre escribe en `work/6M03/`; cada mutante tiene su carpeta.
 `--gpu-ids auto` (por defecto) usa la GPU 0 si hay NVIDIA; `--gpu-ids none` fuerza CPU.
 
 Para generar solo los `.mdp` a 310 K (sin GROMACS):
@@ -41,13 +57,14 @@ python scripts/run_benchmark_6m03.py --stages mdps
 
 1. Descarga de 6M03 desde RCSB.
 2. Limpieza: se conservan ATOM de proteína; se descartan HOH cristalográficas.
-3. `pdb2gmx` (AMBER99SB-ILDN, TIP3P, `-ignh`).
-4. Caja dodecaédrica centrada (`-d 1.2`).
-5. Solvatación y `genion -neutral -conc 0.5`.
-6. Minimización (steepest descent, `emtol = 1000 kJ mol⁻¹ nm⁻¹`).
-7. NVT a 310 K con POSRES decrecientes (1000 → 200 kJ mol⁻¹ nm⁻²).
-8. NPT a 310 K y 1 bar.
-9. Producción NPT (10 ns en el `.mdp` de referencia; ampliar según el recurso).
+3. Mutación a ALA si el modelo no es silvestre (H41A y/o C145A).
+4. `pdb2gmx` (AMBER99SB-ILDN, TIP3P, `-ignh`).
+5. Caja dodecaédrica centrada (`-d 1.2`).
+6. Solvatación y `genion -neutral -conc 0.5`.
+7. Minimización (steepest descent, `emtol = 1000 kJ mol⁻¹ nm⁻¹`).
+8. NVT a 310 K con POSRES decrecientes (1000 → 200 kJ mol⁻¹ nm⁻²).
+9. NPT a 310 K y 1 bar.
+10. Producción NPT (10 ns en el `.mdp` de referencia; ampliar según el recurso).
 
 Los archivos `.mdp` generados quedan en `work/6M03/protocol/` y una copia de
 referencia en `mdp/` de este directorio.

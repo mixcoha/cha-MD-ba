@@ -6,14 +6,16 @@ from cha_md_ba.benchmark import (
     DEFAULT_DATA_DIR,
     DEFAULT_OUTPUT_DIR,
     Benchmark6M03Config,
+    config_for_model,
     parse_system_composition,
+    resolve_model_keys,
     resume_stages,
     write_protocol_mdps,
 )
 from cha_md_ba.gmx_utils import detect_gpu_ids, find_gmx
 from cha_md_ba.npt import NPTEquilibrator
 from cha_md_ba.nvt import NVTEquilibrator
-from cha_md_ba.pdb_utils import clean_protein_pdb
+from cha_md_ba.pdb_utils import clean_protein_pdb, mutate_to_alanine, parse_mutation
 from cha_md_ba.prepare import MDSystemPreparator
 
 
@@ -222,3 +224,120 @@ def test_detect_gpu_ids_none_and_explicit():
     assert detect_gpu_ids("none") is None
     assert detect_gpu_ids("cpu") is None
     assert detect_gpu_ids("0") == "0"
+
+
+HIS41_CYS145_PDB = """\
+HEADER    TEST MPRO DYAD
+ATOM      1  N   SER A   1      11.000  12.000  13.000  1.00 10.00           N
+ATOM      2  CA  SER A   1      12.000  12.000  13.000  1.00 10.00           C
+ATOM     10  N   HIS A  41      20.000  21.000  22.000  1.00 10.00           N
+ATOM     11  CA  HIS A  41      21.000  21.000  22.000  1.00 10.00           C
+ATOM     12  C   HIS A  41      22.000  21.000  22.000  1.00 10.00           C
+ATOM     13  O   HIS A  41      23.000  21.000  22.000  1.00 10.00           O
+ATOM     14  CB  HIS A  41      21.000  22.000  22.000  1.00 10.00           C
+ATOM     15  CG  HIS A  41      21.000  23.000  22.000  1.00 10.00           C
+ATOM     16  ND1 HIS A  41      20.000  24.000  22.000  1.00 10.00           N
+ATOM     17  CD2 HIS A  41      22.000  24.000  22.000  1.00 10.00           C
+ATOM     18  CE1 HIS A  41      21.000  25.000  22.000  1.00 10.00           C
+ATOM     19  NE2 HIS A  41      22.000  25.000  22.000  1.00 10.00           N
+ATOM     30  N   CYS A 145      30.000  31.000  32.000  1.00 10.00           N
+ATOM     31  CA  CYS A 145      31.000  31.000  32.000  1.00 10.00           C
+ATOM     32  C   CYS A 145      32.000  31.000  32.000  1.00 10.00           C
+ATOM     33  O   CYS A 145      33.000  31.000  32.000  1.00 10.00           O
+ATOM     34  CB  CYS A 145      31.000  32.000  32.000  1.00 10.00           C
+ATOM     35  SG  CYS A 145      31.000  33.000  32.000  1.00 10.00           S
+END
+"""
+
+
+def test_parse_mutation_h41a_and_c145a():
+    h41a = parse_mutation("H41A")
+    assert h41a.from_aa == "H"
+    assert h41a.resseq == 41
+    assert h41a.to_aa == "A"
+    assert h41a.chain == "A"
+    assert h41a.label == "H41A"
+    c145a = parse_mutation("C145A")
+    assert c145a.resseq == 145
+    assert c145a.from_aa == "C"
+
+
+def test_mutate_model1_h41a_drops_imidazole(tmp_path):
+    raw = tmp_path / "clean.pdb"
+    out = tmp_path / "H41A.pdb"
+    raw.write_text(HIS41_CYS145_PDB)
+    stats = mutate_to_alanine(str(raw), str(out), ["H41A"])
+    text = out.read_text()
+    assert stats["atoms_dropped"] == 5  # CG, ND1, CD2, CE1, NE2
+    assert "H41A" in text
+    assert " ND1 " not in text
+    assert " SG  CYS A 145" in text
+    assert " CB  ALA A  41" in text or " CB  ALA A 41" in text
+    assert "HIS A  41" not in text
+    assert "CYS A 145" in text
+
+
+def test_mutate_model2_c145a_drops_sg(tmp_path):
+    raw = tmp_path / "clean.pdb"
+    out = tmp_path / "C145A.pdb"
+    raw.write_text(HIS41_CYS145_PDB)
+    stats = mutate_to_alanine(str(raw), str(out), ["C145A"])
+    text = out.read_text()
+    assert stats["atoms_dropped"] == 1
+    assert " SG " not in text
+    assert " ND1 HIS A  41" in text
+    assert " CB  ALA A 145" in text or " CB  ALA A145" in text
+
+
+def test_mutate_model3_double(tmp_path):
+    raw = tmp_path / "clean.pdb"
+    out = tmp_path / "double.pdb"
+    raw.write_text(HIS41_CYS145_PDB)
+    stats = mutate_to_alanine(str(raw), str(out), ["H41A", "C145A"])
+    text = out.read_text()
+    assert stats["atoms_dropped"] == 6
+    assert "HIS" not in text
+    assert "CYS" not in text
+    assert text.count("ALA") >= 2
+
+
+def test_mutate_hie_after_clean(tmp_path):
+    raw = tmp_path / "raw.pdb"
+    clean = tmp_path / "clean.pdb"
+    mutated = tmp_path / "H41A.pdb"
+    raw.write_text(HIS41_CYS145_PDB)
+    clean_protein_pdb(str(raw), str(clean))
+    assert "HIE" in clean.read_text()
+    mutate_to_alanine(str(clean), str(mutated), ["H41A"])
+    text = mutated.read_text()
+    assert "HIE A  41" not in text
+    assert "ALA" in text
+
+
+def test_mutate_wrong_residue_raises(tmp_path):
+    raw = tmp_path / "clean.pdb"
+    raw.write_text(HIS41_CYS145_PDB)
+    try:
+        mutate_to_alanine(str(raw), str(tmp_path / "x.pdb"), ["A41A"])
+        assert False, "debía fallar"
+    except ValueError as exc:
+        assert "H41A" not in str(exc) or "ALA" in str(exc) or "HIS" in str(exc)
+
+
+def test_catalytic_models_and_resume_includes_mutate(tmp_path):
+    assert resolve_model_keys("all") == ["1", "2", "3"]
+    m1 = config_for_model("1")
+    m2 = config_for_model("2")
+    m3 = config_for_model("3")
+    assert m1.mutations == ("H41A",)
+    assert m1.run_id == "6M03_H41A"
+    assert m2.mutations == ("C145A",)
+    assert m2.run_id == "6M03_C145A"
+    assert m3.mutations == ("H41A", "C145A")
+    assert m3.run_id == "6M03_H41A_C145A"
+    stages = resume_stages(tmp_path, m1)
+    assert "mutate" in stages
+    assert stages[0] == "download"
+    wt_stages = resume_stages(tmp_path, Benchmark6M03Config())
+    assert "mutate" not in wt_stages
+

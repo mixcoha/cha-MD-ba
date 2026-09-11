@@ -8,7 +8,7 @@ import os
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from rich.console import Console
 
@@ -16,7 +16,13 @@ from .gmx_utils import detect_gpu_ids, find_gmx, gmx_is_available
 from .minimize import EnergyMinimizer
 from .npt import NPTEquilibrator
 from .nvt import NVTEquilibrator
-from .pdb_utils import clean_protein_pdb
+from .pdb_utils import (
+    PointMutation,
+    clean_protein_pdb,
+    mutate_to_alanine,
+    parse_mutations,
+    run_id_from_mutations,
+)
 from .prepare import MDSystemPreparator, download_pdb
 
 console = Console()
@@ -25,11 +31,44 @@ DEFAULT_OUTPUT_DIR = "work"
 DEFAULT_DATA_DIR = "work/data"
 
 
+# Díada catalítica de Mpro (6M03, cadena A, numeración PDB).
+# Modelo 1: H41A; modelo 2: C145A; modelo 3: ambas.
+MPRO_CATALYTIC_MODELS = {
+    "wt": {
+        "run_id": "6M03",
+        "mutations": (),
+        "title": "silvestre (6M03)",
+    },
+    "1": {
+        "run_id": "6M03_H41A",
+        "mutations": ("H41A",),
+        "title": "Modelo 1: H41A",
+    },
+    "2": {
+        "run_id": "6M03_C145A",
+        "mutations": ("C145A",),
+        "title": "Modelo 2: C145A",
+    },
+    "3": {
+        "run_id": "6M03_H41A_C145A",
+        "mutations": ("H41A", "C145A"),
+        "title": "Modelo 3: H41A + C145A",
+    },
+}
+MPRO_CATALYTIC_MODELS["h41a"] = MPRO_CATALYTIC_MODELS["1"]
+MPRO_CATALYTIC_MODELS["c145a"] = MPRO_CATALYTIC_MODELS["2"]
+MPRO_CATALYTIC_MODELS["double"] = MPRO_CATALYTIC_MODELS["3"]
+MPRO_CATALYTIC_MODELS["h41a_c145a"] = MPRO_CATALYTIC_MODELS["3"]
+MUTANT_MODEL_KEYS = ("1", "2", "3")
+
+
 @dataclass
 class Benchmark6M03Config:
     """Condiciones del benchmark 6M03 en agua con NaCl a temperatura fisiológica."""
 
     pdb_id: str = "6M03"
+    run_id: str = "6M03"
+    mutations: tuple = ()
     description: str = (
         "SARS-CoV-2 Mpro apo (6M03) disuelta en agua TIP3P con NaCl 0.5 M a 310 K"
     )
@@ -49,10 +88,76 @@ class Benchmark6M03Config:
     ion_positive: str = "NA"
     ion_negative: str = "CL"
 
+    def parsed_mutations(self) -> Tuple[PointMutation, ...]:
+        if not self.mutations:
+            return ()
+        return parse_mutations(self.mutations)
 
-def system_paths(output_dir: Path, pdb_id: str) -> Dict[str, Path]:
-    """Rutas estándar de una corrida local bajo ``output_dir/pdb_id``."""
-    base = Path(output_dir) / pdb_id
+    @property
+    def mutation_labels(self) -> List[str]:
+        return [mut.label for mut in self.parsed_mutations()]
+
+
+def config_for_model(model: str, base: Optional[Benchmark6M03Config] = None) -> Benchmark6M03Config:
+    """Devuelve la config de un modelo (wt, 1/H41A, 2/C145A, 3/doble)."""
+    key = str(model).strip().lower()
+    if key not in MPRO_CATALYTIC_MODELS:
+        raise ValueError(
+            f"Modelo desconocido: {model!r}. Usa wt, 1 (H41A), 2 (C145A), 3 (ambas) o all."
+        )
+    spec = MPRO_CATALYTIC_MODELS[key]
+    config = Benchmark6M03Config() if base is None else Benchmark6M03Config(**{
+        field: getattr(base, field)
+        for field in (
+            "pdb_id",
+            "temperature",
+            "ion_concentration",
+            "pressure",
+            "forcefield",
+            "water_model",
+            "box_type",
+            "box_distance",
+            "dt",
+            "minimization_nsteps",
+            "nvt_nsteps",
+            "npt_nsteps",
+            "production_nsteps",
+            "nvt_force_constants",
+            "ion_positive",
+            "ion_negative",
+        )
+    })
+    config.run_id = spec["run_id"]
+    config.mutations = spec["mutations"]
+    title = spec["title"]
+    if config.mutations:
+        config.description = (
+            f"{title}. SARS-CoV-2 Mpro (6M03) en agua TIP3P con NaCl 0.5 M a 310 K"
+        )
+    return config
+
+
+def resolve_model_keys(model: str) -> List[str]:
+    """Expande 'all' a los tres mutantes; el resto queda como un solo modelo."""
+    key = str(model).strip().lower()
+    if key in {"all", "mutants", "mutantes"}:
+        return list(MUTANT_MODEL_KEYS)
+    if key not in MPRO_CATALYTIC_MODELS:
+        raise ValueError(
+            f"Modelo desconocido: {model!r}. Usa wt, 1, 2, 3 o all."
+        )
+    canonical = {
+        "h41a": "1",
+        "c145a": "2",
+        "double": "3",
+        "h41a_c145a": "3",
+    }
+    return [canonical.get(key, key)]
+
+
+def system_paths(output_dir: Path, run_id: str) -> Dict[str, Path]:
+    """Rutas estándar de una corrida local bajo ``output_dir/run_id``."""
+    base = Path(output_dir) / run_id
     prep = base / "1_preparation"
     return {
         "base_dir": base,
@@ -62,7 +167,7 @@ def system_paths(output_dir: Path, pdb_id: str) -> Dict[str, Path]:
         "npt_dir": base / "4_npt",
         "production_dir": base / "5_production",
         "topology": prep / "topol.top",
-        "ions": prep / f"{pdb_id}_ions.gro",
+        "ions": prep / f"{run_id}_ions.gro",
         "minimized": base / "2_minimization" / "minimized.gro",
     }
 
@@ -93,9 +198,9 @@ def last_completed_nvt_fc(nvt_dir: Path, force_constants: tuple) -> Optional[int
     return last
 
 
-def load_prepared_paths(output_dir: Path, pdb_id: str) -> Dict[str, Path]:
+def load_prepared_paths(output_dir: Path, run_id: str) -> Dict[str, Path]:
     """Reconstruye las rutas de un sistema ya preparado en ``work/``."""
-    paths = system_paths(output_dir, pdb_id)
+    paths = system_paths(output_dir, run_id)
     missing = [name for name in ("topology", "ions") if not paths[name].exists()]
     if missing:
         raise RuntimeError(
@@ -105,11 +210,20 @@ def load_prepared_paths(output_dir: Path, pdb_id: str) -> Dict[str, Path]:
     return paths
 
 
+def initial_stages(config: Benchmark6M03Config) -> List[str]:
+    """Etapas de una corrida desde cero, con mutación si el modelo la pide."""
+    stages = ["download", "clean"]
+    if config.mutations:
+        stages.append("mutate")
+    stages.extend(["prepare", "mdps", "minimize", "nvt", "npt"])
+    return stages
+
+
 def resume_stages(output_dir: Path, config: Benchmark6M03Config) -> List[str]:
     """Elige las etapas que faltan para continuar una corrida local."""
-    paths = system_paths(output_dir, config.pdb_id)
+    paths = system_paths(output_dir, config.run_id)
     if not paths["topology"].exists() or not paths["ions"].exists():
-        return ["download", "clean", "prepare", "mdps", "minimize", "nvt", "npt"]
+        return initial_stages(config)
     if not paths["minimized"].exists():
         return ["mdps", "minimize", "nvt", "npt"]
     if last_completed_nvt_fc(paths["nvt_dir"], config.nvt_force_constants) != config.nvt_force_constants[-1]:
@@ -162,21 +276,21 @@ def write_protocol_mdps(output_dir: Path, config: Benchmark6M03Config) -> Dict[s
 
     nvt_mdp = nvt.create_mdp_file(
         output_dir / "nvt.mdp",
-        title=f"NVT {config.pdb_id} {config.temperature} K",
+        title=f"NVT {config.run_id} {config.temperature} K",
         use_posres=True,
         gen_vel=True,
         continuation=False,
     )
     npt_mdp = npt.create_mdp_file(
         output_dir / "npt.mdp",
-        title=f"NPT {config.pdb_id} {config.temperature} K",
+        title=f"NPT {config.run_id} {config.temperature} K",
         is_production=False,
         gen_vel=False,
         continuation=True,
     )
     md_mdp = npt.create_mdp_file(
         output_dir / "md.mdp",
-        title=f"Production {config.pdb_id} {config.temperature} K {config.ion_concentration} M NaCl",
+        title=f"Production {config.run_id} {config.temperature} K {config.ion_concentration} M NaCl",
         is_production=True,
         nsteps=config.production_nsteps,
         gen_vel=False,
@@ -207,10 +321,13 @@ def run_benchmark(
 
     raw_pdb = data_path / f"{config.pdb_id}_raw.pdb"
     clean_pdb = data_path / f"{config.pdb_id}.pdb"
+    mutated_pdb = data_path / f"{config.run_id}.pdb"
     result: Dict[str, object] = {
         "config": asdict(config),
         "gmx": gmx_cmd,
         "stages": stages,
+        "run_id": config.run_id,
+        "mutations": list(config.mutations),
     }
 
     if "download" in stages:
@@ -234,7 +351,26 @@ def run_benchmark(
             f"({stats['n_residues']} residuos, cadenas {stats['chains']})[/green]"
         )
 
-    protocol_dir = base_output / config.pdb_id / "protocol"
+    if "mutate" in stages or (config.mutations and "prepare" in stages):
+        if not config.mutations:
+            raise RuntimeError("La etapa mutate requiere --model o --mutations.")
+        source = clean_pdb if clean_pdb.exists() else raw_pdb
+        if not source.exists():
+            raise RuntimeError(
+                f"No hay PDB limpio para mutar ({source}). Ejecuta download+clean o --resume."
+            )
+        console.print(
+            f"[cyan]Mutando {', '.join(config.mutation_labels)} → {mutated_pdb.name}[/cyan]"
+        )
+        mut_stats = mutate_to_alanine(str(source), str(mutated_pdb), config.mutations)
+        result["mutated_pdb"] = str(mutated_pdb)
+        result["mutation_stats"] = mut_stats
+        console.print(
+            f"[green]Mutaciones aplicadas: {mut_stats['mutations']} "
+            f"(átomos de cadena lateral eliminados: {mut_stats['atoms_dropped']})[/green]"
+        )
+
+    protocol_dir = base_output / config.run_id / "protocol"
     if "mdps" in stages:
         console.print(f"[cyan]Escribiendo MDP del protocolo a {config.temperature} K...[/cyan]")
         mdps = write_protocol_mdps(protocol_dir, config)
@@ -243,18 +379,18 @@ def run_benchmark(
     needs_system = any(stage in stages for stage in ("prepare", "minimize", "nvt", "npt"))
     prepared = None
     if needs_system:
-        existing = system_paths(base_output, config.pdb_id)
+        existing = system_paths(base_output, config.run_id)
         if existing["topology"].exists() and existing["ions"].exists() and "prepare" not in stages:
-            prepared = load_prepared_paths(base_output, config.pdb_id)
+            prepared = load_prepared_paths(base_output, config.run_id)
             result["preparation"] = {key: str(value) for key, value in prepared.items()}
             result["composition"] = parse_system_composition(prepared["topology"])
             console.print(f"[green]Reutilizando sistema en {prepared['base_dir']}[/green]")
 
     if "prepare" in stages:
-        existing = system_paths(base_output, config.pdb_id)
+        existing = system_paths(base_output, config.run_id)
         if existing["topology"].exists() and existing["ions"].exists():
             console.print("[yellow]Sistema ya preparado; se reutiliza (no se vuelve a solvar).[/yellow]")
-            prepared = load_prepared_paths(base_output, config.pdb_id)
+            prepared = load_prepared_paths(base_output, config.run_id)
             result["preparation"] = {key: str(value) for key, value in prepared.items()}
             result["composition"] = parse_system_composition(prepared["topology"])
             console.print(f"[green]Composición: {result['composition']}[/green]")
@@ -264,9 +400,14 @@ def run_benchmark(
                     "GROMACS no está disponible. Instálalo o define CHA_MD_BA_GMXBIN. "
                     "Los MDP del protocolo ya pueden generarse con --stages mdps."
                 )
-            pdb_for_prep = clean_pdb if clean_pdb.exists() else raw_pdb
+            if config.mutations and mutated_pdb.exists():
+                pdb_for_prep = mutated_pdb
+            elif clean_pdb.exists():
+                pdb_for_prep = clean_pdb
+            else:
+                pdb_for_prep = raw_pdb
             console.print(
-                f"[cyan]Preparando sistema: {config.forcefield}, {config.water_model}, "
+                f"[cyan]Preparando {config.run_id}: {config.forcefield}, {config.water_model}, "
                 f"NaCl {config.ion_concentration} M...[/cyan]"
             )
             preparator = MDSystemPreparator(
@@ -292,7 +433,7 @@ def run_benchmark(
 
     if "minimize" in stages:
         if prepared is None:
-            prepared = load_prepared_paths(base_output, config.pdb_id)
+            prepared = load_prepared_paths(base_output, config.run_id)
         min_gro = Path(prepared["minimization_dir"]) / "minimized.gro"
         if min_gro.exists():
             console.print("[yellow]Minimización ya completa; se reutiliza minimized.gro.[/yellow]")
@@ -310,7 +451,7 @@ def run_benchmark(
 
     if "nvt" in stages:
         if prepared is None:
-            prepared = load_prepared_paths(base_output, config.pdb_id)
+            prepared = load_prepared_paths(base_output, config.run_id)
         min_gro = Path(
             str(result.get("minimization", {}).get("final") or Path(prepared["minimization_dir"]) / "minimized.gro")
         )
@@ -333,7 +474,7 @@ def run_benchmark(
 
     if "npt" in stages:
         if prepared is None:
-            prepared = load_prepared_paths(base_output, config.pdb_id)
+            prepared = load_prepared_paths(base_output, config.run_id)
         nvt_result = result.get("nvt")
         last_fc = list(config.nvt_force_constants)[-1]
         if not nvt_result:
@@ -361,13 +502,13 @@ def run_benchmark(
             npt_files = npt.equilibrate(prepared["npt_dir"], gpu_ids=gpu_ids)
             result["npt"] = {key: str(path) for key, path in npt_files.items()}
 
-    report_dir = base_output / config.pdb_id
+    report_dir = base_output / config.run_id
     report_dir.mkdir(parents=True, exist_ok=True)
     report_path = report_dir / "benchmark_report.json"
     serializable = _jsonable(result)
     report_path.write_text(json.dumps(serializable, indent=2, ensure_ascii=False))
     result["report"] = str(report_path)
-    console.print(f"[bold green]Benchmark 6M03 listo. Reporte: {report_path}[/bold green]")
+    console.print(f"[bold green]Benchmark {config.run_id} listo. Reporte: {report_path}[/bold green]")
     return result
 
 
@@ -385,7 +526,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Benchmark de 6M03 (Mpro apo de SARS-CoV-2) en agua TIP3P "
-            "con NaCl 0.5 M a 310 K."
+            "con NaCl 0.5 M a 310 K. Modelos: silvestre, H41A, C145A o ambas."
         )
     )
     parser.add_argument(
@@ -399,9 +540,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directorio local para PDB descargados (gitignored; por defecto work/data/)",
     )
     parser.add_argument(
+        "--model",
+        default="wt",
+        help="wt | 1 (H41A) | 2 (C145A) | 3 (H41A+C145A) | all (los tres mutantes)",
+    )
+    parser.add_argument(
+        "--mutations",
+        default=None,
+        help="Mutaciones extra (p. ej. H41A o H41A,C145A). Anula --model si se indica.",
+    )
+    parser.add_argument(
         "--stages",
         default="download,clean,prepare,mdps,minimize",
-        help="Etapas separadas por coma: download,clean,prepare,mdps,minimize,nvt,npt",
+        help="Etapas: download,clean,mutate,prepare,mdps,minimize,nvt,npt",
     )
     parser.add_argument(
         "--resume",
@@ -419,32 +570,59 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run_6m03_benchmark(argv: Optional[List[str]] = None) -> int:
-    args = build_parser().parse_args(argv)
-    config = Benchmark6M03Config()
+def _apply_cli_overrides(config: Benchmark6M03Config, args) -> Benchmark6M03Config:
     if args.em_nsteps:
         config.minimization_nsteps = args.em_nsteps
     if args.box_distance:
         config.box_distance = args.box_distance
+    if args.mutations:
+        parsed = parse_mutations(args.mutations)
+        config.mutations = tuple(mut.label for mut in parsed)
+        config.run_id = run_id_from_mutations(config.pdb_id, config.mutations)
+        labels = ", ".join(config.mutation_labels)
+        config.description = (
+            f"{labels}. SARS-CoV-2 Mpro (6M03) en agua TIP3P con NaCl 0.5 M a 310 K"
+        )
+    return config
+
+
+def run_6m03_benchmark(argv: Optional[List[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
     gpu_ids = detect_gpu_ids(args.gpu_ids)
-    if args.resume:
-        stages = resume_stages(Path(args.output_dir), config)
-        if not stages:
-            console.print("[bold green]La corrida local ya está completa (NVT + NPT).[/bold green]")
-            return 0
-        console.print(f"[cyan]Reanudando etapas: {', '.join(stages)}[/cyan]")
+    model_keys = ["custom"] if args.mutations else resolve_model_keys(args.model)
+
+    for model_key in model_keys:
+        if args.mutations:
+            config = _apply_cli_overrides(Benchmark6M03Config(), args)
+        else:
+            config = _apply_cli_overrides(config_for_model(model_key), args)
+        if args.resume:
+            stages = resume_stages(Path(args.output_dir), config)
+            if not stages:
+                console.print(
+                    f"[bold green]{config.run_id} ya está completo (NVT + NPT).[/bold green]"
+                )
+                continue
+            console.print(f"[cyan]{config.run_id}: reanudando {', '.join(stages)}[/cyan]")
+        else:
+            stages = [item.strip() for item in args.stages.split(",") if item.strip()]
+            if config.mutations and "mutate" not in stages:
+                if "clean" in stages:
+                    idx = stages.index("clean") + 1
+                    stages.insert(idx, "mutate")
+                elif "prepare" in stages:
+                    stages.insert(stages.index("prepare"), "mutate")
+            console.print(f"[cyan]{config.run_id}: {', '.join(config.mutation_labels) or 'silvestre'}[/cyan]")
         if gpu_ids:
             console.print(f"[cyan]GPU: {gpu_ids}[/cyan]")
         else:
             console.print("[yellow]Sin GPU: mdrun en CPU (más lento).[/yellow]")
-    else:
-        stages = [item.strip() for item in args.stages.split(",") if item.strip()]
-    run_benchmark(
-        config=config,
-        output_dir=args.output_dir,
-        data_dir=args.data_dir,
-        stages=stages,
-        gpu_ids=gpu_ids,
-        gmx=args.gmx,
-    )
+        run_benchmark(
+            config=config,
+            output_dir=args.output_dir,
+            data_dir=args.data_dir,
+            stages=stages,
+            gpu_ids=gpu_ids,
+            gmx=args.gmx,
+        )
     return 0
