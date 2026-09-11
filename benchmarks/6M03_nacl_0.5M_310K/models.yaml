@@ -1,0 +1,23 @@
+# Modelos de la díada catalítica de Mpro (6M03, cadena A).
+# Misma caja, NaCl 0.15 M y 310 K que el silvestre.
+# Numeración PDB: His41 y Cys145.
+
+wt:
+  run_id: "6M03"
+  mutations: []
+  title: "silvestre (6M03)"
+
+1:
+  run_id: "6M03_H41A"
+  mutations: ["H41A"]
+  title: "Modelo 1: H41A"
+
+2:
+  run_id: "6M03_C145A"
+  mutations: ["C145A"]
+  title: "Modelo 2: C145A"
+
+3:
+  run_id: "6M03_H41A_C145A"
+  mutations: ["H41A", "C145A"]
+  title: "Modelo 3: H41A + C145A"
