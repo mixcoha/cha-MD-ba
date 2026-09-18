@@ -7,6 +7,7 @@ Ejemplos de Uso
 
    preparacion_sistema
    simulacion_basica
+   benchmark_6m03
    analisis_trayectorias
    visualizacion_resultados
 

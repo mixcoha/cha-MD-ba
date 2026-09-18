@@ -68,6 +68,13 @@ cha-md-ba npt
 cha-md-ba production
 ```
 
+Benchmark de 6M03 (agua, NaCl 0.15 M, 310 K). La salida va a `work/`
+(carpeta local, no se sube a GitHub):
+
+```bash
+python scripts/run_benchmark_6m03.py --gpu-ids 0
+```
+
 ### Python API
 
 ```python

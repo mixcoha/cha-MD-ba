@@ -14,7 +14,15 @@ console = Console()
 class EnergyMinimizer:
     """Clase para realizar minimización de energía de sistemas moleculares"""
     
-    def __init__(self, input_gro: str, topol_top: str, mdp_file: Optional[str] = None, gmx: str = "gmx_mpi"):
+    def __init__(
+        self,
+        input_gro: str,
+        topol_top: str,
+        mdp_file: Optional[str] = None,
+        gmx: str = "gmx_mpi",
+        nsteps: int = 50000,
+        emtol: float = 1000.0,
+    ):
         """
         Inicializa el minimizador
         
@@ -23,11 +31,15 @@ class EnergyMinimizer:
             topol_top: Ruta al archivo de topología (.top)
             mdp_file: Ruta al archivo de parámetros de minimización (.mdp)
             gmx: Comando de GROMACS a utilizar
+            nsteps: Número máximo de pasos de minimización
+            emtol: Criterio de convergencia en kJ/mol/nm
         """
         self.input_gro = Path(input_gro)
         self.topol_top = Path(topol_top)
         self.mdp_file = Path(mdp_file) if mdp_file else None
         self.gmx = gmx
+        self.nsteps = nsteps
+        self.emtol = emtol
         
     def create_mdp_file(self, output_path: str) -> Path:
         """
@@ -41,14 +53,14 @@ class EnergyMinimizer:
         """
         output_path = Path(output_path)
         
-        mdp_content = """; Líneas que comienzan con ';' son considerados comentarios
+        mdp_content = f"""; Líneas que comienzan con ';' son considerados comentarios
 title               = Energy Minimization
 
 ; Parameters describing what to do, when to stop and what to save
 integrator          = steep     ; steepest descent minimization
-emtol               = 1000.0    ; Stop minimization when the maximum force < 1000.0 kJ/mol/nm
+emtol               = {self.emtol}    ; Stop minimization when the maximum force < {self.emtol} kJ/mol/nm
 emstep              = 0.01      ; Energy step size
-nsteps              = 50000     ; Maximum number of (minimization) steps to perform
+nsteps              = {self.nsteps}     ; Maximum number of (minimization) steps to perform
 
 ; Parameters describing how to find the neighbors of each atom and how to calculate the interactions
 nstlist             = 10        ; Frequency to update the neighbor list and long range forces
@@ -99,22 +111,23 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
         # 3. Ejecutar minimización
         console.log("Ejecutando minimización...")
         cmd = [
-            "gmx_mpi", "mdrun", "-v",
+            self.gmx, "mdrun", "-v",
             "-s", str(tpr_path),
-            "-gpu_id", gpu_ids,
-            "-tunepme"
+            "-deffnm", str(output_dir / "em"),
         ]
+        if gpu_ids:
+            cmd.extend(["-gpu_id", gpu_ids, "-tunepme"])
         subprocess.run(cmd, check=True)
             
         # 4. Procesar la estructura final
         console.log("Procesando estructura final...")
-        
-        # Mover archivos generados al directorio de salida
-        for file in ["confout.gro", "ener.edr", "md.log"]:
-            if Path(file).exists():
-                shutil.move(file, str(output_dir / file))
-                
-        confout_gro = output_dir / "confout.gro"
+
+        confout_gro = output_dir / "em.gro"
+        if not confout_gro.exists():
+            for file in ["confout.gro", "ener.edr", "md.log"]:
+                if Path(file).exists():
+                    shutil.move(file, str(output_dir / file))
+            confout_gro = output_dir / "confout.gro"
         
         # Centrar molécula
         cmd = [self.gmx, "trjconv", "-f", str(confout_gro), "-s", str(tpr_path),
@@ -136,6 +149,6 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
             "tpr": tpr_path,
             "confout": confout_gro,
             "final": output_dir / "minimized.gro",
-            "edr": output_dir / "ener.edr",
-            "log": output_dir / "md.log"
+            "edr": output_dir / "em.edr" if (output_dir / "em.edr").exists() else output_dir / "ener.edr",
+            "log": output_dir / "em.log" if (output_dir / "em.log").exists() else output_dir / "md.log"
         }

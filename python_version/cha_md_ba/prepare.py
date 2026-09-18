@@ -2,10 +2,9 @@
 Módulo para preparar simulaciones de dinámica molecular
 """
 
-import os
 import subprocess
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 from rich.console import Console
 from rich.progress import Progress
 import requests
@@ -41,7 +40,17 @@ console = Console()
 class MDSystemPreparator:
     """Clase para preparar sistemas de dinámica molecular"""
     
-    def __init__(self, pdb_path: str, forcefield: str = "amber99sb-ildn", water_model: str = "tip3p"):
+    def __init__(
+        self,
+        pdb_path: str,
+        forcefield: str = "amber99sb-ildn",
+        water_model: str = "tip3p",
+        ion_concentration: Optional[float] = None,
+        gmx: str = "gmx_mpi",
+        ignore_hydrogens: bool = True,
+        ion_positive: str = "NA",
+        ion_negative: str = "CL",
+    ):
         """
         Inicializa el preparador de sistemas
         
@@ -49,12 +58,21 @@ class MDSystemPreparator:
             pdb_path: Ruta al archivo PDB
             forcefield: Campo de fuerzas a utilizar
             water_model: Modelo de agua a utilizar
+            ion_concentration: Concentración de sal en mol/L. None solo neutraliza.
+            gmx: Ejecutable de GROMACS
+            ignore_hydrogens: Pasar -ignh a pdb2gmx
+            ion_positive: Nombre del catión (NA)
+            ion_negative: Nombre del anión (CL)
         """
         self.pdb_path = Path(pdb_path)
         self.forcefield = forcefield
         self.water_model = water_model
+        self.ion_concentration = ion_concentration
+        self.ignore_hydrogens = ignore_hydrogens
+        self.ion_positive = ion_positive
+        self.ion_negative = ion_negative
         self.system_name = self.pdb_path.stem  # Nombre del sistema basado en el PDB
-        self.gmx = "gmx_mpi"  # Comando de GROMACS
+        self.gmx = gmx  # Comando de GROMACS
         
     def _create_ions_mdp(self, output_path: Path) -> Path:
         """Crea el archivo de parámetros para genion"""
@@ -85,7 +103,8 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
     def prepare_system(self, output_dir: str, box_type: str = "dodecahedron", 
                       box_size: Optional[float] = None, ions: bool = True,
                       minimize: bool = True, gpu_ids: Optional[str] = None,
-                      replace_group: str = "SOL") -> Dict[str, Path]:
+                      replace_group: str = "SOL",
+                      ion_concentration: Optional[float] = None) -> Dict[str, Path]:
         """
         Prepara el sistema para simulación
         
@@ -97,6 +116,7 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
             minimize: Si se debe realizar minimización de energía
             gpu_ids: IDs de GPUs a utilizar para minimización
             replace_group: Grupo de átomos a reemplazar con iones (por defecto "SOL")
+            ion_concentration: Concentración de sal en mol/L; anula el valor del constructor
             
         Returns:
             Diccionario con rutas a los archivos generados
@@ -111,6 +131,8 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
         # Crear directorios
         for dir_path in [prep_dir, min_dir, nvt_dir, npt_dir]:
             dir_path.mkdir(parents=True, exist_ok=True)
+
+        conc = self.ion_concentration if ion_concentration is None else ion_concentration
             
         # Copiar el archivo PDB al directorio de preparación
         prep_pdb = prep_dir / f"{self.system_name}.pdb"
@@ -137,7 +159,9 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
             # 4. Neutralización
             if ions:
                 task = progress.add_task("[cyan]Neutralizando sistema...", total=1)
-                ions_path = self._neutralize_system(prep_dir, solv_path, replace_group)
+                ions_path = self._neutralize_system(
+                    prep_dir, solv_path, replace_group, concentration=conc
+                )
                 progress.advance(task)
                 
             # 5. Minimización de energía
@@ -177,17 +201,20 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
         output_dir.mkdir(parents=True, exist_ok=True)
         pdb_path = output_dir / f"{self.system_name}.pdb"
         
-        # Generar topología usando pdb2gmx
+        # Generar topología usando pdb2gmx (cwd = prep dir para que posre.itp quede al lado)
         topol_path = output_dir / "topol.top"
         cmd = [
             self.gmx, "pdb2gmx",
-            "-f", str(pdb_path),
-            "-o", str(output_dir / f"{self.system_name}.gro"),
-            "-p", str(topol_path),
+            "-f", f"{self.system_name}.pdb",
+            "-o", f"{self.system_name}.gro",
+            "-p", "topol.top",
+            "-i", "posre.itp",
             "-ff", self.forcefield,
             "-water", self.water_model
         ]
-        subprocess.run(cmd, check=True)
+        if self.ignore_hydrogens:
+            cmd.append("-ignh")
+        subprocess.run(cmd, check=True, cwd=output_dir)
         
         return topol_path
         
@@ -196,7 +223,7 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
         input_gro = output_dir / f"{self.system_name}.gro"
         output_gro = output_dir / f"{self.system_name}_box.gro"
         
-        cmd = [self.gmx, "editconf", "-f", str(input_gro), "-o", str(output_gro)]
+        cmd = [self.gmx, "editconf", "-f", str(input_gro), "-o", str(output_gro), "-c"]
         
         if box_type:
             cmd.extend(["-bt", box_type])
@@ -225,13 +252,20 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
         
         return output_gro
         
-    def _neutralize_system(self, output_dir: Path, solv_path: Path, replace_group: str = "SOL") -> Path:
-        """Neutraliza el sistema
+    def _neutralize_system(
+        self,
+        output_dir: Path,
+        solv_path: Path,
+        replace_group: str = "SOL",
+        concentration: Optional[float] = None,
+    ) -> Path:
+        """Neutraliza el sistema y, si se indica, añade sal a la concentración pedida.
         
         Args:
             output_dir: Directorio de salida
             solv_path: Ruta al archivo GRO solvatado
             replace_group: Grupo de átomos a reemplazar con iones (por defecto "SOL")
+            concentration: Concentración de sal en mol/L (p. ej. 0.5). None solo neutraliza.
         """
         input_gro = solv_path
         output_gro = output_dir / f"{self.system_name}_ions.gro"
@@ -247,20 +281,23 @@ pbc                 = xyz       ; Periodic Boundary Conditions in all 3 dimensio
             "-f", str(mdp_path),
             "-c", str(input_gro),
             "-p", str(topol_path),
-            "-o", str(tpr_path)
+            "-o", str(tpr_path),
+            "-maxwarn", "1",
         ]
         subprocess.run(cmd, check=True)
         
-        # Agregar iones
+        # Agregar iones (neutralizar y, opcionalmente, sal)
         cmd = [
             self.gmx, "genion",
             "-s", str(tpr_path),
             "-o", str(output_gro),
             "-p", str(topol_path),
-            "-pname", "NA",
-            "-nname", "CL",
-            "-neutral"
+            "-pname", self.ion_positive,
+            "-nname", self.ion_negative,
+            "-neutral",
         ]
+        if concentration is not None and concentration > 0:
+            cmd.extend(["-conc", str(concentration)])
         subprocess.run(cmd, input=f"{replace_group}\n".encode(), check=True)
         
         return output_gro

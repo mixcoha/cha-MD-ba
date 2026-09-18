@@ -1,0 +1,21 @@
+# Composición del sistema 6M03 generado con el protocolo de referencia.
+# Caja dodecaédrica ~700.4 nm³. NA/CL de abajo son de una corrida a 0.5 M;
+# a 0.15 M el recuento de iones baja (se regenera en topol.top).
+
+protein: 6M03
+chain: A
+n_residues: 306
+n_protein_atoms_pdb: 2367
+n_protein_atoms_h: 4682
+molecules:
+  Protein_chain_A: 1
+  SOL: 21061
+  NA: 215
+  CL: 211
+net_charge: 0
+forcefield: amber99sb-ildn
+water_model: tip3p
+temperature_K: 310
+ion_concentration_M: 0.15
+box_type: dodecahedron
+box_distance_nm: 1.2
