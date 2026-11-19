@@ -1,0 +1,131 @@
+{
+  "file": "/cursor/stores/self/internal/2fyt-vina/runs/exh8/poses.pdbqt",
+  "n_modes": 20,
+  "top_affinity_kcal_mol": -5.383,
+  "top_pose_rmsd_A": 27.9859,
+  "best_rmsd_A": 22.2168,
+  "best_rmsd_mode": 14,
+  "best_rmsd_affinity_kcal_mol": -4.92,
+  "modes": [
+    {
+      "mode": 1,
+      "affinity_kcal_mol": -5.383,
+      "rmsd_symmetry_A": 27.9859,
+      "rmsd_index_A": 27.9859
+    },
+    {
+      "mode": 2,
+      "affinity_kcal_mol": -5.369,
+      "rmsd_symmetry_A": 27.2672,
+      "rmsd_index_A": 27.2679
+    },
+    {
+      "mode": 3,
+      "affinity_kcal_mol": -5.319,
+      "rmsd_symmetry_A": 22.5931,
+      "rmsd_index_A": 22.5931
+    },
+    {
+      "mode": 4,
+      "affinity_kcal_mol": -5.258,
+      "rmsd_symmetry_A": 25.9127,
+      "rmsd_index_A": 25.9127
+    },
+    {
+      "mode": 5,
+      "affinity_kcal_mol": -5.24,
+      "rmsd_symmetry_A": 41.7345,
+      "rmsd_index_A": 41.7345
+    },
+    {
+      "mode": 6,
+      "affinity_kcal_mol": -5.18,
+      "rmsd_symmetry_A": 39.193,
+      "rmsd_index_A": 39.193
+    },
+    {
+      "mode": 7,
+      "affinity_kcal_mol": -5.103,
+      "rmsd_symmetry_A": 39.8234,
+      "rmsd_index_A": 39.8275
+    },
+    {
+      "mode": 8,
+      "affinity_kcal_mol": -5.058,
+      "rmsd_symmetry_A": 41.5185,
+      "rmsd_index_A": 41.5191
+    },
+    {
+      "mode": 9,
+      "affinity_kcal_mol": -5.036,
+      "rmsd_symmetry_A": 23.4226,
+      "rmsd_index_A": 23.4226
+    },
+    {
+      "mode": 10,
+      "affinity_kcal_mol": -5.024,
+      "rmsd_symmetry_A": 24.0519,
+      "rmsd_index_A": 24.0519
+    },
+    {
+      "mode": 11,
+      "affinity_kcal_mol": -4.991,
+      "rmsd_symmetry_A": 23.7178,
+      "rmsd_index_A": 23.7178
+    },
+    {
+      "mode": 12,
+      "affinity_kcal_mol": -4.974,
+      "rmsd_symmetry_A": 26.9265,
+      "rmsd_index_A": 26.9266
+    },
+    {
+      "mode": 13,
+      "affinity_kcal_mol": -4.969,
+      "rmsd_symmetry_A": 42.8917,
+      "rmsd_index_A": 42.8917
+    },
+    {
+      "mode": 14,
+      "affinity_kcal_mol": -4.92,
+      "rmsd_symmetry_A": 22.2168,
+      "rmsd_index_A": 22.2231
+    },
+    {
+      "mode": 15,
+      "affinity_kcal_mol": -4.875,
+      "rmsd_symmetry_A": 44.0671,
+      "rmsd_index_A": 44.0693
+    },
+    {
+      "mode": 16,
+      "affinity_kcal_mol": -4.775,
+      "rmsd_symmetry_A": 26.2386,
+      "rmsd_index_A": 26.2436
+    },
+    {
+      "mode": 17,
+      "affinity_kcal_mol": -4.77,
+      "rmsd_symmetry_A": 43.9138,
+      "rmsd_index_A": 43.9138
+    },
+    {
+      "mode": 18,
+      "affinity_kcal_mol": -4.758,
+      "rmsd_symmetry_A": 25.2453,
+      "rmsd_index_A": 25.2453
+    },
+    {
+      "mode": 19,
+      "affinity_kcal_mol": -4.729,
+      "rmsd_symmetry_A": 42.6285,
+      "rmsd_index_A": 42.6315
+    },
+    {
+      "mode": 20,
+      "affinity_kcal_mol": -4.655,
+      "rmsd_symmetry_A": 24.0717,
+      "rmsd_index_A": 24.0717
+    }
+  ]
+}

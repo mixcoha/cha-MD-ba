@@ -1,0 +1,17 @@
+{
+  "file": "/cursor/stores/self/internal/2fyt-vina/runs/controls/crystal_local_only.pdbqt",
+  "n_modes": 1,
+  "top_affinity_kcal_mol": null,
+  "top_pose_rmsd_A": 0.1325,
+  "best_rmsd_A": 0.1325,
+  "best_rmsd_mode": 1,
+  "best_rmsd_affinity_kcal_mol": null,
+  "modes": [
+    {
+      "mode": 1,
+      "affinity_kcal_mol": null,
+      "rmsd_symmetry_A": 0.1325,
+      "rmsd_index_A": 0.1325
+    }
+  ]
+}
