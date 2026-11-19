@@ -190,11 +190,9 @@ def main():
     selected = []
     # mode 1 of each exhaustiveness, plus the closest mode of exhaustiveness 64
     picks = [
-        (8, 1, "#1f77b4", "Exh. 8, modo 1"),
         (16, 1, "#d62728", "Exh. 16, modo 1"),
-        (32, 1, "#9467bd", "Exh. 32, modo 1"),
-        (64, 1, "#8c564b", "Exh. 64, modo 1"),
-        (64, 16, "#ff7f0e", "Exh. 64, modo 16 (menor RMSD)"),
+        (256, 1, "#ff7f0e", "Exh. 256, modo 1"),
+        (1024, 1, "#17becf", "Exh. 1024, modo 1"),
     ]
     pdb_blocks = {"receptor": receptor_pdb, "cristal": (OUT / "cristal.pdb").read_text()}
     ligands_for_plot = [(crystal, "#2ca02c", "Cristal")]

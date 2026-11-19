@@ -1,0 +1,41 @@
+{
+  "file": "/cursor/stores/self/internal/2fyt-vina/runs/exh1024/poses.pdbqt",
+  "n_modes": 5,
+  "top_affinity_kcal_mol": -9.251,
+  "top_pose_rmsd_A": 0.2249,
+  "best_rmsd_A": 0.2249,
+  "best_rmsd_mode": 1,
+  "best_rmsd_affinity_kcal_mol": -9.251,
+  "modes": [
+    {
+      "mode": 1,
+      "affinity_kcal_mol": -9.251,
+      "rmsd_symmetry_A": 0.2249,
+      "rmsd_index_A": 0.2249
+    },
+    {
+      "mode": 2,
+      "affinity_kcal_mol": -8.484,
+      "rmsd_symmetry_A": 3.7085,
+      "rmsd_index_A": 3.7398
+    },
+    {
+      "mode": 3,
+      "affinity_kcal_mol": -8.382,
+      "rmsd_symmetry_A": 2.045,
+      "rmsd_index_A": 2.045
+    },
+    {
+      "mode": 4,
+      "affinity_kcal_mol": -6.912,
+      "rmsd_symmetry_A": 8.3446,
+      "rmsd_index_A": 8.3446
+    },
+    {
+      "mode": 5,
+      "affinity_kcal_mol": -6.304,
+      "rmsd_symmetry_A": 9.3262,
+      "rmsd_index_A": 9.3262
+    }
+  ]
+}

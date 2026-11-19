@@ -18,11 +18,9 @@
   <h1>2FYT: receptor, pose cristalina y poses de AutoDock Vina</h1>
   <div id="legend">
     <div class="item"><span class="swatch" style="background:#2ca02c"></span>Cristal, SAH A 549</div>
-<div class="item"><span class="swatch" style="background:#1f77b4"></span>Exh. 8, modo 1: -5.383 kcal/mol, RMSD 27.99 Å</div>
 <div class="item"><span class="swatch" style="background:#d62728"></span>Exh. 16, modo 1: -6.052 kcal/mol, RMSD 22.47 Å</div>
-<div class="item"><span class="swatch" style="background:#9467bd"></span>Exh. 32, modo 1: -5.935 kcal/mol, RMSD 26.54 Å</div>
-<div class="item"><span class="swatch" style="background:#8c564b"></span>Exh. 64, modo 1: -5.935 kcal/mol, RMSD 26.54 Å</div>
-<div class="item"><span class="swatch" style="background:#ff7f0e"></span>Exh. 64, modo 16 (menor RMSD): -5.354 kcal/mol, RMSD 9.30 Å</div>
+<div class="item"><span class="swatch" style="background:#ff7f0e"></span>Exh. 256, modo 1: -8.409 kcal/mol, RMSD 3.77 Å</div>
+<div class="item"><span class="swatch" style="background:#17becf"></span>Exh. 1024, modo 1: -9.251 kcal/mol, RMSD 0.22 Å</div>
   </div>
 </div>
 <div id="viewer"></div>
@@ -2511,34 +2509,6 @@ HETATM   25  N   SAH A   1    -10.744 -21.991  19.096  1.00  0.00           N
 HETATM   26  O   SAH A   1    -12.239 -26.910  24.356  1.00  0.00           O
 END
 `,
-"exh8_modo1": `HETATM    1  S   SAH A   1    -29.723 -14.123   2.665  1.00  0.00           S
-HETATM    2  C   SAH A   1    -29.199 -12.541   3.428  1.00  0.00           C
-HETATM    3  C   SAH A   1    -28.784 -12.824   4.868  1.00  0.00           C
-HETATM    4  C   SAH A   1    -27.568 -12.026   5.377  1.00  0.00           C
-HETATM    5  N   SAH A   1    -27.469 -10.634   4.867  1.00  0.00           N
-HETATM    6  C   SAH A   1    -26.326 -12.753   4.964  1.00  0.00           C
-HETATM    7  O   SAH A   1    -25.535 -12.169   4.210  1.00  0.00           O
-HETATM    8  O   SAH A   1    -26.107 -13.903   5.400  1.00  0.00           O
-HETATM    9  C   SAH A   1    -28.105 -14.959   2.683  1.00  0.00           C
-HETATM   10  C   SAH A   1    -28.061 -16.286   3.435  1.00  0.00           C
-HETATM   11  O   SAH A   1    -29.367 -16.547   3.904  1.00  0.00           O
-HETATM   12  C   SAH A   1    -27.691 -17.522   2.630  1.00  0.00           C
-HETATM   13  C   SAH A   1    -29.684 -17.910   3.839  1.00  0.00           C
-HETATM   14  C   SAH A   1    -28.952 -18.408   2.586  1.00  0.00           C
-HETATM   15  O   SAH A   1    -26.634 -18.204   3.287  1.00  0.00           O
-HETATM   16  N   SAH A   1    -31.162 -17.963   3.812  1.00  0.00           N
-HETATM   17  C   SAH A   1    -32.043 -16.906   3.898  1.00  0.00           C
-HETATM   18  C   SAH A   1    -31.898 -19.099   3.695  1.00  0.00           C
-HETATM   19  N   SAH A   1    -33.303 -17.402   3.830  1.00  0.00           N
-HETATM   20  C   SAH A   1    -33.243 -18.746   3.695  1.00  0.00           C
-HETATM   21  N   SAH A   1    -31.525 -20.392   3.567  1.00  0.00           N
-HETATM   22  C   SAH A   1    -34.229 -19.743   3.599  1.00  0.00           C
-HETATM   23  C   SAH A   1    -32.483 -21.393   3.448  1.00  0.00           C
-HETATM   24  N   SAH A   1    -33.828 -21.065   3.483  1.00  0.00           N
-HETATM   25  N   SAH A   1    -35.549 -19.444   3.613  1.00  0.00           N
-HETATM   26  O   SAH A   1    -28.651 -19.765   2.742  1.00  0.00           O
-END
-`,
 "exh16_modo1": `HETATM    1  S   SAH A   1    -15.737 -25.959  -2.992  1.00  0.00           S
 HETATM    2  C   SAH A   1    -16.079 -27.563  -2.177  1.00  0.00           C
 HETATM    3  C   SAH A   1    -17.195 -28.259  -2.951  1.00  0.00           C
@@ -2567,88 +2537,60 @@ HETATM   25  N   SAH A   1     -8.240 -20.472   1.974  1.00  0.00           N
 HETATM   26  O   SAH A   1    -10.175 -26.914  -0.431  1.00  0.00           O
 END
 `,
-"exh32_modo1": `HETATM    1  S   SAH A   1    -25.093 -15.815   2.609  1.00  0.00           S
-HETATM    2  C   SAH A   1    -24.394 -17.460   3.010  1.00  0.00           C
-HETATM    3  C   SAH A   1    -23.410 -17.838   1.908  1.00  0.00           C
-HETATM    4  C   SAH A   1    -22.439 -18.986   2.250  1.00  0.00           C
-HETATM    5  N   SAH A   1    -21.688 -19.542   1.094  1.00  0.00           N
-HETATM    6  C   SAH A   1    -23.232 -20.101   2.859  1.00  0.00           C
-HETATM    7  O   SAH A   1    -23.849 -20.858   2.096  1.00  0.00           O
-HETATM    8  O   SAH A   1    -23.235 -20.255   4.098  1.00  0.00           O
-HETATM    9  C   SAH A   1    -26.825 -16.328   2.375  1.00  0.00           C
-HETATM   10  C   SAH A   1    -27.116 -17.800   2.655  1.00  0.00           C
-HETATM   11  O   SAH A   1    -28.339 -17.860   3.359  1.00  0.00           O
-HETATM   12  C   SAH A   1    -27.327 -18.701   1.449  1.00  0.00           C
-HETATM   13  C   SAH A   1    -29.108 -18.967   2.978  1.00  0.00           C
-HETATM   14  C   SAH A   1    -28.804 -19.141   1.485  1.00  0.00           C
-HETATM   15  O   SAH A   1    -26.476 -19.831   1.559  1.00  0.00           O
-HETATM   16  N   SAH A   1    -30.499 -18.612   3.338  1.00  0.00           N
-HETATM   17  C   SAH A   1    -30.983 -17.376   3.710  1.00  0.00           C
-HETATM   18  C   SAH A   1    -31.543 -19.481   3.357  1.00  0.00           C
-HETATM   19  N   SAH A   1    -32.312 -17.499   3.949  1.00  0.00           N
-HETATM   20  C   SAH A   1    -32.685 -18.780   3.730  1.00  0.00           C
-HETATM   21  N   SAH A   1    -31.609 -20.800   3.064  1.00  0.00           N
-HETATM   22  C   SAH A   1    -33.914 -19.451   3.842  1.00  0.00           C
-HETATM   23  C   SAH A   1    -32.820 -21.480   3.147  1.00  0.00           C
-HETATM   24  N   SAH A   1    -33.960 -20.807   3.553  1.00  0.00           N
-HETATM   25  N   SAH A   1    -35.045 -18.810   4.219  1.00  0.00           N
-HETATM   26  O   SAH A   1    -28.965 -20.487   1.140  1.00  0.00           O
+"exh256_modo1": `HETATM    1  S   SAH A   1    -15.778 -30.629  21.066  1.00  0.00           S
+HETATM    2  C   SAH A   1    -17.586 -30.337  21.097  1.00  0.00           C
+HETATM    3  C   SAH A   1    -17.824 -28.871  21.442  1.00  0.00           C
+HETATM    4  C   SAH A   1    -19.198 -28.306  21.030  1.00  0.00           C
+HETATM    5  N   SAH A   1    -19.683 -28.742  19.695  1.00  0.00           N
+HETATM    6  C   SAH A   1    -19.102 -26.812  21.016  1.00  0.00           C
+HETATM    7  O   SAH A   1    -18.024 -26.296  21.344  1.00  0.00           O
+HETATM    8  O   SAH A   1    -20.086 -26.130  20.658  1.00  0.00           O
+HETATM    9  C   SAH A   1    -15.241 -28.904  21.302  1.00  0.00           C
+HETATM   10  C   SAH A   1    -13.858 -28.727  21.923  1.00  0.00           C
+HETATM   11  O   SAH A   1    -13.226 -27.663  21.242  1.00  0.00           O
+HETATM   12  C   SAH A   1    -13.807 -28.326  23.388  1.00  0.00           C
+HETATM   13  C   SAH A   1    -12.451 -26.877  22.105  1.00  0.00           C
+HETATM   14  C   SAH A   1    -13.223 -26.900  23.431  1.00  0.00           C
+HETATM   15  O   SAH A   1    -12.960 -29.224  24.086  1.00  0.00           O
+HETATM   16  N   SAH A   1    -12.327 -25.568  21.429  1.00  0.00           N
+HETATM   17  C   SAH A   1    -13.267 -24.561  21.365  1.00  0.00           C
+HETATM   18  C   SAH A   1    -11.232 -25.146  20.745  1.00  0.00           C
+HETATM   19  N   SAH A   1    -12.739 -23.537  20.649  1.00  0.00           N
+HETATM   20  C   SAH A   1    -11.485 -23.865  20.264  1.00  0.00           C
+HETATM   21  N   SAH A   1    -10.039 -25.743  20.518  1.00  0.00           N
+HETATM   22  C   SAH A   1    -10.512 -23.197  19.503  1.00  0.00           C
+HETATM   23  C   SAH A   1     -9.053 -25.090  19.786  1.00  0.00           C
+HETATM   24  N   SAH A   1     -9.301 -23.831  19.268  1.00  0.00           N
+HETATM   25  N   SAH A   1    -10.726 -21.958  19.003  1.00  0.00           N
+HETATM   26  O   SAH A   1    -12.322 -26.727  24.487  1.00  0.00           O
 END
 `,
-"exh64_modo1": `HETATM    1  S   SAH A   1    -25.093 -15.815   2.609  1.00  0.00           S
-HETATM    2  C   SAH A   1    -24.394 -17.460   3.010  1.00  0.00           C
-HETATM    3  C   SAH A   1    -23.410 -17.838   1.908  1.00  0.00           C
-HETATM    4  C   SAH A   1    -22.439 -18.986   2.250  1.00  0.00           C
-HETATM    5  N   SAH A   1    -21.688 -19.542   1.094  1.00  0.00           N
-HETATM    6  C   SAH A   1    -23.232 -20.101   2.859  1.00  0.00           C
-HETATM    7  O   SAH A   1    -23.849 -20.858   2.096  1.00  0.00           O
-HETATM    8  O   SAH A   1    -23.235 -20.255   4.098  1.00  0.00           O
-HETATM    9  C   SAH A   1    -26.825 -16.328   2.375  1.00  0.00           C
-HETATM   10  C   SAH A   1    -27.116 -17.800   2.655  1.00  0.00           C
-HETATM   11  O   SAH A   1    -28.339 -17.860   3.359  1.00  0.00           O
-HETATM   12  C   SAH A   1    -27.327 -18.701   1.449  1.00  0.00           C
-HETATM   13  C   SAH A   1    -29.108 -18.967   2.978  1.00  0.00           C
-HETATM   14  C   SAH A   1    -28.804 -19.141   1.485  1.00  0.00           C
-HETATM   15  O   SAH A   1    -26.476 -19.831   1.559  1.00  0.00           O
-HETATM   16  N   SAH A   1    -30.499 -18.612   3.338  1.00  0.00           N
-HETATM   17  C   SAH A   1    -30.983 -17.376   3.710  1.00  0.00           C
-HETATM   18  C   SAH A   1    -31.543 -19.481   3.357  1.00  0.00           C
-HETATM   19  N   SAH A   1    -32.312 -17.499   3.949  1.00  0.00           N
-HETATM   20  C   SAH A   1    -32.685 -18.780   3.730  1.00  0.00           C
-HETATM   21  N   SAH A   1    -31.609 -20.800   3.064  1.00  0.00           N
-HETATM   22  C   SAH A   1    -33.914 -19.451   3.842  1.00  0.00           C
-HETATM   23  C   SAH A   1    -32.820 -21.480   3.147  1.00  0.00           C
-HETATM   24  N   SAH A   1    -33.960 -20.807   3.553  1.00  0.00           N
-HETATM   25  N   SAH A   1    -35.045 -18.810   4.219  1.00  0.00           N
-HETATM   26  O   SAH A   1    -28.965 -20.487   1.140  1.00  0.00           O
-END
-`,
-"exh64_modo16": `HETATM    1  S   SAH A   1    -14.477 -23.086  22.599  1.00  0.00           S
-HETATM    2  C   SAH A   1    -14.722 -24.901  22.587  1.00  0.00           C
-HETATM    3  C   SAH A   1    -13.565 -25.540  23.347  1.00  0.00           C
-HETATM    4  C   SAH A   1    -12.713 -26.542  22.542  1.00  0.00           C
-HETATM    5  N   SAH A   1    -12.398 -26.125  21.151  1.00  0.00           N
-HETATM    6  C   SAH A   1    -13.459 -27.838  22.474  1.00  0.00           C
-HETATM    7  O   SAH A   1    -13.932 -28.179  21.380  1.00  0.00           O
-HETATM    8  O   SAH A   1    -13.566 -28.547  23.497  1.00  0.00           O
-HETATM    9  C   SAH A   1    -15.443 -22.712  24.098  1.00  0.00           C
-HETATM   10  C   SAH A   1    -14.684 -21.981  25.202  1.00  0.00           C
-HETATM   11  O   SAH A   1    -15.272 -20.704  25.341  1.00  0.00           O
-HETATM   12  C   SAH A   1    -14.746 -22.583  26.596  1.00  0.00           C
-HETATM   13  C   SAH A   1    -15.314 -20.291  26.679  1.00  0.00           C
-HETATM   14  C   SAH A   1    -15.539 -21.588  27.467  1.00  0.00           C
-HETATM   15  O   SAH A   1    -13.427 -22.731  27.097  1.00  0.00           O
-HETATM   16  N   SAH A   1    -16.393 -19.281  26.737  1.00  0.00           N
-HETATM   17  C   SAH A   1    -16.260 -17.909  26.781  1.00  0.00           C
-HETATM   18  C   SAH A   1    -17.722 -19.562  26.758  1.00  0.00           C
-HETATM   19  N   SAH A   1    -17.502 -17.367  26.824  1.00  0.00           N
-HETATM   20  C   SAH A   1    -18.420 -18.359  26.801  1.00  0.00           C
-HETATM   21  N   SAH A   1    -18.383 -20.741  26.720  1.00  0.00           N
-HETATM   22  C   SAH A   1    -19.824 -18.365  26.844  1.00  0.00           C
-HETATM   23  C   SAH A   1    -19.774 -20.769  26.739  1.00  0.00           C
-HETATM   24  N   SAH A   1    -20.485 -19.584  26.820  1.00  0.00           N
-HETATM   25  N   SAH A   1    -20.541 -17.218  26.904  1.00  0.00           N
-HETATM   26  O   SAH A   1    -14.988 -21.447  28.745  1.00  0.00           O
+"exh1024_modo1": `HETATM    1  S   SAH A   1    -16.413 -30.094  21.887  1.00  0.00           S
+HETATM    2  C   SAH A   1    -16.112 -31.481  20.728  1.00  0.00           C
+HETATM    3  C   SAH A   1    -15.117 -32.435  21.381  1.00  0.00           C
+HETATM    4  C   SAH A   1    -14.714 -33.657  20.531  1.00  0.00           C
+HETATM    5  N   SAH A   1    -14.086 -33.336  19.223  1.00  0.00           N
+HETATM    6  C   SAH A   1    -15.946 -34.464  20.262  1.00  0.00           C
+HETATM    7  O   SAH A   1    -16.260 -34.667  19.080  1.00  0.00           O
+HETATM    8  O   SAH A   1    -16.606 -34.926  21.216  1.00  0.00           O
+HETATM    9  C   SAH A   1    -15.282 -28.883  21.129  1.00  0.00           C
+HETATM   10  C   SAH A   1    -13.922 -28.744  21.806  1.00  0.00           C
+HETATM   11  O   SAH A   1    -13.251 -27.669  21.184  1.00  0.00           O
+HETATM   12  C   SAH A   1    -13.921 -28.390  23.285  1.00  0.00           C
+HETATM   13  C   SAH A   1    -12.499 -26.921  22.100  1.00  0.00           C
+HETATM   14  C   SAH A   1    -13.321 -26.974  23.394  1.00  0.00           C
+HETATM   15  O   SAH A   1    -13.111 -29.321  23.985  1.00  0.00           O
+HETATM   16  N   SAH A   1    -12.333 -25.593  21.469  1.00  0.00           N
+HETATM   17  C   SAH A   1    -13.226 -24.542  21.473  1.00  0.00           C
+HETATM   18  C   SAH A   1    -11.239 -25.195  20.769  1.00  0.00           C
+HETATM   19  N   SAH A   1    -12.671 -23.517  20.781  1.00  0.00           N
+HETATM   20  C   SAH A   1    -11.446 -23.887  20.345  1.00  0.00           C
+HETATM   21  N   SAH A   1    -10.083 -25.837  20.483  1.00  0.00           N
+HETATM   22  C   SAH A   1    -10.465 -23.234  19.580  1.00  0.00           C
+HETATM   23  C   SAH A   1     -9.088 -25.202  19.747  1.00  0.00           C
+HETATM   24  N   SAH A   1     -9.292 -23.913  19.285  1.00  0.00           N
+HETATM   25  N   SAH A   1    -10.634 -21.967  19.134  1.00  0.00           N
+HETATM   26  O   SAH A   1    -12.458 -26.847  24.488  1.00  0.00           O
 END
 `
 };
@@ -2658,24 +2600,16 @@ viewer.setStyle({model: 0}, {cartoon: {color: "#d0d0d0"}});
 viewer.addModel(models["cristal"], "pdb");
 viewer.setStyle({model: 1}, {stick: {color: "#2ca02c", radius: 0.22}});
 
-  viewer.addModel(models["exh8_modo1"], "pdb");
-  viewer.setStyle({model: 1}, {stick: {color: "#1f77b4", radius: 0.18}});
-
-
   viewer.addModel(models["exh16_modo1"], "pdb");
-  viewer.setStyle({model: 2}, {stick: {color: "#d62728", radius: 0.18}});
+  viewer.setStyle({model: 1}, {stick: {color: "#d62728", radius: 0.18}});
 
 
-  viewer.addModel(models["exh32_modo1"], "pdb");
-  viewer.setStyle({model: 3}, {stick: {color: "#9467bd", radius: 0.18}});
+  viewer.addModel(models["exh256_modo1"], "pdb");
+  viewer.setStyle({model: 2}, {stick: {color: "#ff7f0e", radius: 0.18}});
 
 
-  viewer.addModel(models["exh64_modo1"], "pdb");
-  viewer.setStyle({model: 4}, {stick: {color: "#8c564b", radius: 0.18}});
-
-
-  viewer.addModel(models["exh64_modo16"], "pdb");
-  viewer.setStyle({model: 5}, {stick: {color: "#ff7f0e", radius: 0.18}});
+  viewer.addModel(models["exh1024_modo1"], "pdb");
+  viewer.setStyle({model: 3}, {stick: {color: "#17becf", radius: 0.18}});
 
 viewer.zoomTo();
 viewer.render();

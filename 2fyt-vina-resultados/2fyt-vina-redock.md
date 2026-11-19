@@ -5,9 +5,9 @@ cursor:
 
 # Redock ciego de 2FYT con AutoDock Vina
 
-No se reprodujo la pose cristalográfica. El mejor RMSD de átomos pesados, con corrección de simetría y sin superponer las coordenadas, fue **9,30 Å** (exhaustiveness 64, modo 16, afinidad −5,354 kcal/mol). La pose de mejor afinidad más cercana al cristal quedó a **22,47 Å** (exhaustiveness 16, −6,052 kcal/mol). El umbral de 2,0 Å no se alcanzó.
+Sí se reprodujo la pose cristalográfica. Con la misma caja de toda la proteína, exhaustividad **1024** y semilla 42, la pose de mejor afinidad queda a **0,22 Å** del SAH cristalino y puntúa **−9,251 kcal/mol**.
 
-La pose experimental sí es un mínimo local de esta preparación: puntuada en la misma caja da −8,834 kcal/mol, y una minimización local dentro de esa caja llega a −9,048 kcal/mol con RMSD 0,13 Å. Las búsquedas globales no visitaron ese pozo. La caja no se redujo.
+El barrido corto (exhaustividad 8 a 64) no bastó: el mejor RMSD de ese tramo fue 9,30 Å y la mejor pose rank-1 quedó a 22,47 Å. La función de puntuación sí reconoce el sitio (la pose cristalina da −8,834 kcal/mol y una minimización local, −9,048 kcal/mol a 0,13 Å). Lo que faltaba era muestreo. En Vina 1.2.7 un `max_evals` mayor que cero corta la búsqueda; el esfuerzo se sube con la exhaustividad. La caja no se redujo.
 
 ## Ligando
 
@@ -58,9 +58,9 @@ Una sola caja, la misma en las cuatro corridas. Límites de los 2455 átomos pes
 | Centro (Å) | −26,789 | −27,7695 | 21,6495 |
 | Tamaño (Å) | 73,072 | 56,347 | 66,839 |
 
-Volumen 275 202 Å³. Vina avisó de que supera 27 000 Å³. El SAH cristalográfico queda dentro, a 18,8 Å de la cara más cercana. No hizo falta bajar `num_modes` ni la exhaustividad: con 4 CPU cada corrida terminó en menos de dos minutos. La caja no se tocó.
+Volumen 275 202 Å³. Vina avisó de que supera 27 000 Å³. El SAH cristalográfico queda dentro, a 18,8 Å de la cara más cercana. La caja no se tocó en ninguna corrida. Las cuatro primeras, con 4 CPU, terminaron en menos de dos minutos; por eso el primer barrido no bajó `num_modes`. Después se subió solo la exhaustividad.
 
-El resto quedó fijo: semilla 42, `num_modes` 20, `scoring vina`, `cpu` 4, espaciado 0,375 Å, `energy_range` 3 kcal/mol y `min_rmsd` 1 Å (valores por defecto). Las cuatro corridas devolvieron 20 modos. La semilla impresa por Vina fue 42.
+El resto quedó fijo: semilla 42, `num_modes` 20, `scoring vina`, `cpu` 4, espaciado 0,375 Å, `energy_range` 3 kcal/mol y `min_rmsd` 1 Å (valores por defecto). Todas las corridas devolvieron 20 modos. La semilla impresa por Vina fue 42.
 
 ## Corridas
 
@@ -72,24 +72,26 @@ RMSD de átomos pesados, con simetría y sin superposición, frente al SAH crist
 | 16 | 42 | −6,052 | 22,469 | 18,745 | 16 | −5,328 | 24 |
 | 32 | 42 | −5,935 | 26,542 | 20,337 | 17 | −5,211 | 44 |
 | 64 | 42 | −5,935 | 26,542 | 9,295 | 16 | −5,354 | 79 |
+| 256 | 42 | −8,409 | 3,768 | 3,768 | 1 | −8,409 | 295 |
+| 1024 | 42 | −9,251 | 0,225 | 0,225 | 1 | −9,251 | 1168 |
 
-Centro y tamaño de la caja, en las cuatro filas: (−26,789, −27,7695, 21,6495) Å y (73,072 × 56,347 × 66,839) Å.
+Centro y tamaño de la caja, en todas las filas: (−26,789, −27,7695, 21,6495) Å y (73,072 × 56,347 × 66,839) Å.
 
 `obrms` de Open Babel, sin la opción `-m`, reproduce esas cifras (22,4685 Å, 26,5417 Å y 9,2953 Å). La opción `-m` superpone las estructuras y no se usó.
 
 ## ¿RMSD menor de 2 Å?
 
-No. Ni el modo 1 ni ningún otro modo bajó de 2,0 Å. El mínimo de todo el barrido es 9,30 Å.
+Sí, con exhaustividad 1024. El modo 1 queda a **0,22 Å** y es a la vez la pose de mejor afinidad (−9,251 kcal/mol). El modo 3 de esa misma corrida queda a 2,05 Å (−8,382 kcal/mol) y el modo 2 a 3,71 Å (−8,484 kcal/mol).
 
-Subir la exhaustividad de 32 a 64 no cambió la pose de mejor afinidad (−5,935 kcal/mol, 26,54 Å) y sí acercó un modo peor puntuado hasta 9,30 Å. Esa pose sigue fuera del sitio cristalográfico: el centro de masas del modo más próximo en exhaustiveness 8 ya estaba a unos 21 Å del cristal, y el de 9,30 Å tampoco cae en el sitio.
+Exhaustividad 256 ya entra al sitio, pero no cruza el umbral: el modo 1 queda a 3,77 Å y −8,409 kcal/mol. Hasta 64, ninguna pose bajó de 9,30 Å.
 
-El motivo es el muestreo, no la preparación. La pose cristalográfica, evaluada con `--score_only` en esta misma caja, obtiene **−8,834 kcal/mol**. Una búsqueda solo local (`--local_only`, misma caja y semilla) la deja en **−9,048 kcal/mol** y **0,133 Å**. Ese mínimo es unos 3 kcal/mol mejor que cualquier pose del redock ciego. El número de evaluaciones de Vina depende de la exhaustividad y del ligando, no del volumen de la caja, así que 64 corridas independientes no recorren 275 000 Å³.
+El motivo del fallo inicial es el muestreo, no la preparación. Cada corrida independiente de Vina da un número de pasos fijo por el tamaño del ligando (unos 11 rotables); la exhaustividad solo multiplica cuántas de esas corridas se lanzan dentro de la caja. Con 64 no se visita el pozo nativo. Con 1024, sí. La caja siguió siendo la de toda la proteína.
 
 ## Ajuste recomendado
 
-Exhaustividad **16**, semilla **42**, caja de centro (−26,789, −27,7695, 21,6495) Å y tamaño (73,072 × 56,347 × 66,839) Å.
+Exhaustividad **1024**, semilla **42**, caja de centro (−26,789, −27,7695, 21,6495) Å y tamaño (73,072 × 56,347 × 66,839) Å.
 
-Es la corrida cuya pose de mejor afinidad queda más cerca del cristal: **RMSD 22,47 Å** y **afinidad −6,052 kcal/mol**. No cumple el criterio de 2 Å. Exhaustividad 64 mejora el mejor modo del conjunto (9,30 Å, −5,354 kcal/mol) pero la pose que Vina coloca primera sigue a 26,54 Å, igual que con exhaustividad 32.
+La pose de mejor afinidad reproduce el cristal: **RMSD 0,22 Å** y **afinidad −9,251 kcal/mol**. Tardó 1168 s en 4 CPU.
 
 ## RMSD
 

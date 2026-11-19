@@ -9,5 +9,9 @@ prep/SAH.pdbqt               Ligando en la pose cristalográfica.
 control/crystal_local_only.pdbqt
                              Minimización local de la pose cristalina en la misma caja (RMSD 0.13 Å).
 
-La caja, la semilla (42) y la tabla están en el informe. No se alcanzó RMSD < 2 Å.
-El mejor RMSD del barrido es 9.30 Å (exhaustiveness 64, modo 16).
+La caja, la semilla (42) y la tabla están en el informe.
+Con exhaustiveness 1024 la pose de mejor afinidad reproduce el cristal: RMSD 0.22 Å, -9.251 kcal/mol.
+Exhaustiveness 256 entra al sitio pero queda a 3.77 Å. Hasta 64, el mejor RMSD era 9.30 Å.
+
+vistas/sitio_exh1024.png     Acercamiento: cristal (verde), exh. 256 (naranja) y exh. 1024 (cian).
+vistas/poses.html            Visor 3D del receptor con esas poses.
