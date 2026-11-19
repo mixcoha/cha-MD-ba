@@ -1,0 +1,68 @@
+START 2026-11-19T21:24:34+00:00
+vina AutoDock Vina v1.2.7
+exhaustiveness=8 num_modes=20 seed=42 cpu=4
+center=-26.789 -27.7695 21.6495 size=73.072 56.347 66.839
+AutoDock Vina v1.2.7
+#################################################################
+# If you used AutoDock Vina in your work, please cite:          #
+#                                                               #
+# J. Eberhardt, D. Santos-Martins, A. F. Tillack, and S. Forli  #
+# AutoDock Vina 1.2.0: New Docking Methods, Expanded Force      #
+# Field, and Python Bindings, J. Chem. Inf. Model. (2021)       #
+# DOI 10.1021/acs.jcim.1c00203                                  #
+#                                                               #
+# O. Trott, A. J. Olson,                                        #
+# AutoDock Vina: improving the speed and accuracy of docking    #
+# with a new scoring function, efficient optimization and       #
+# multithreading, J. Comp. Chem. (2010)                         #
+# DOI 10.1002/jcc.21334                                         #
+#                                                               #
+# Please see https://github.com/ccsb-scripps/AutoDock-Vina for  #
+# more information.                                             #
+#################################################################
+
+Scoring function : vina
+Rigid receptor: /cursor/stores/self/internal/2fyt-vina/prep/receptor.pdbqt
+Ligand: /cursor/stores/self/internal/2fyt-vina/prep/SAH.pdbqt
+Grid center: X -26.789 Y -27.7695 Z 21.6495
+Grid size  : X 73.072 Y 56.347 Z 66.839
+Grid space : 0.375
+Exhaustiveness: 8
+CPU: 4
+Verbosity: 1
+
+WARNING: Search space volume is greater than 27000 Angstrom^3 (See FAQ)
+Computing Vina grid ... done.
+Performing docking (random seed: 42) ... 
+0%   10   20   30   40   50   60   70   80   90   100%
+|----|----|----|----|----|----|----|----|----|----|
+***************************************************
+
+mode |   affinity | dist from best mode
+     | (kcal/mol) | rmsd l.b.| rmsd u.b.
+-----+------------+----------+----------
+   1       -5.383          0          0
+   2       -5.369      2.889      4.655
+   3       -5.319      18.55      21.56
+   4       -5.258       4.74      8.245
+   5        -5.24      18.63      20.74
+   6        -5.18       16.7       19.3
+   7       -5.103      15.92      17.91
+   8       -5.058      18.26      20.47
+   9       -5.036       23.8      26.93
+  10       -5.024      27.57      28.32
+  11       -4.991       19.9      22.43
+  12       -4.974      3.689       5.53
+  13       -4.969      22.07      24.92
+  14        -4.92       29.7      30.89
+  15       -4.875      22.66      25.55
+  16       -4.775      3.828      6.186
+  17        -4.77       22.9      25.73
+  18       -4.758       24.6       26.6
+  19       -4.729      19.75      22.02
+  20       -4.655      25.43      27.44
+WALL_SEC 15
+VINA_EXIT 0
+END 2026-11-19T21:24:50+00:00
+RMSD_JSON /cursor/stores/self/internal/2fyt-vina/runs/exh8/rmsd.json
+top_affinity -5.383 top_rmsd 27.9859 best_rmsd 22.2168 mode 14

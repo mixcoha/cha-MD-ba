@@ -1,0 +1,13 @@
+Resultados del redock ciego de 2FYT (SAH, cadena A, residuo 549) con AutoDock Vina 1.2.7.
+
+2fyt-vina-redock.md          Informe en español.
+poses/exh8.pdbqt             20 poses, exhaustiveness 8. Igual para 16, 32 y 64.
+rmsd/exh8.json               RMSD de átomos pesados (spyrmsd, sin superposición) de cada modo.
+logs/                        Salida de Vina y tiempos.
+prep/receptor.pdbqt          Receptor usado.
+prep/SAH.pdbqt               Ligando en la pose cristalográfica.
+control/crystal_local_only.pdbqt
+                             Minimización local de la pose cristalina en la misma caja (RMSD 0.13 Å).
+
+La caja, la semilla (42) y la tabla están en el informe. No se alcanzó RMSD < 2 Å.
+El mejor RMSD del barrido es 9.30 Å (exhaustiveness 64, modo 16).
